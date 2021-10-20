@@ -53,7 +53,7 @@ public:
         } else if (type == ast::VoidType::name()) {
             return "void"; // ???
         } else if (type == ast::Type::name()) {
-            return "";
+            return "null";
         } else {
             return "struct_TODO";
         }
@@ -80,8 +80,9 @@ private:
 
     typedef std::map<std::string, TypedValuePtr> Scope;
 
-    std::vector<Scope> scopes; // this is probably not correct...
-                               // it carries type info, but not value information.
+    Scope globals;
+    std::vector<Scope> scopes;
+    std::map<std::string, ast::FunctionPtr> funcs;
     ast::ProgramPtr program;
 
     TypedValuePtr lookup(std::string name) {
@@ -90,7 +91,27 @@ private:
                 return it->at(name);
             }
         }
+        if (globals.count(name)) {
+            return globals.at(name);
+        }
         return nullptr;
+    }
+
+    Scope bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params) {
+        Scope newScope;
+        if (params.size() != args.size()) {
+            throw std::runtime_error("arg and param list were not the same length");
+        }
+        for (int i = 0; i < args.size(); ++i) {
+            TypedValue tv = args.at(i)->accept(this);
+            TypedValuePtr dec = params.at(i)->accept(this);
+            if (tv.type != dec->type) {
+                throw std::runtime_error("incorrect type for arg-param binding");
+            }
+            dec->value = tv.value;
+            newScope.insert({params.at(i)->name, dec});
+        }
+        return newScope;
     }
 public:
     MiniInterpreter(ast::ProgramPtr program) : program(program) {};
@@ -223,6 +244,10 @@ public:
     }
 
     Any visit(ast::Function* function) override {
+        for (ast::DeclarationPtr local : function->locals) {
+            TypedValuePtr evaluated = local->accept(this);
+            scopes.back().insert({local->name, evaluated});
+        }
         return function->body->accept(this);
     }
 
@@ -242,8 +267,26 @@ public:
         return ast::IntType::name();
     }
 
-    // Any visit(ast::InvocationExpression* expression) override // will involve getting the ret type and proxy... or do we even care about proxy
-    // Any visit(ast::InvocationStatement* statement) override
+    Any visit(ast::InvocationExpression* expression) override {
+        /* we may need more in-depth scoping rules than this, fwiw */
+        if (funcs.count(expression->name) == 0) {
+            throw std::runtime_error("call to undefined function");
+        }
+        ast::FunctionPtr f = funcs.at(expression->name);
+
+        Scope s = bindArgs(expression->arguments, f->params);
+        scopes.push_back(s);
+
+        TypedValue retVal = f->accept(this);
+        scopes.pop_back();
+        return retVal;
+    }
+
+    Any visit(ast::InvocationStatement* statement) override {
+        // possible that this'll need a check to make sure it's a fn within
+        // but the parser should rule that out, probably.
+        return statement->expression->accept(this);
+    }
     // Any visit(ast::LvalueDot* lvalue) override
 
     Any visit(ast::LvalueId* lvalue) override {
@@ -277,27 +320,37 @@ public:
             return 1;
         }
 
+        globals.clear();
         scopes.clear();
-        scopes.push_back(Scope());
+        funcs.clear();
+        scopes.push_back(Scope()); // scope for main
         for (ast::DeclarationPtr d : program->decls) {
             // get the globals
             TypedValuePtr decRes = d->accept(this);
-            scopes[0].insert({d->name, decRes});
+            globals.insert({d->name, decRes});
         }
 
         // check to see if main actually returned something?
+        ast::FunctionPtr mainFn = nullptr;
         for (ast::FunctionPtr f : program->funcs) {
             if (f->name == "main") {
-                TypedValue result = f->accept(this);
-                if (result.type != ast::IntType::name()) {
-                    std::cerr << "error: main did not return an int\n";
-                    return 1;
-                } else {
-                    return result.get<int>();
-                }
+                mainFn = f;
             }
+            funcs.insert({f->name, f});
         };
-        std::cerr << "error: no main function in program\n";
+
+        if (mainFn == nullptr) {
+            std::cerr << "error: no main function in program\n";
+            return 1;
+        }
+
+        TypedValue result = mainFn->accept(this);
+        if (result.type != ast::IntType::name()) {
+            std::cerr << "error: main did not return an int\n";
+            return 1;
+        } else {
+            return result.get<int>();
+        }
         return 1;
     }
 
