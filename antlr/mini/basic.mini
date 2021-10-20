@@ -1,0 +1,17 @@
+int x, y, upperBound;
+
+fun main() int
+{
+    upperBound = read;
+    x = 0;
+    while (x < upperBound) {
+        y = 0;
+        while (y < upperBound) {
+            print x + y;
+            y = y + 1;
+        }
+        print null endl;
+        x = x + 1;
+    }
+    return 0;
+}

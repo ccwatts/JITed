@@ -1,0 +1,10 @@
+a = call getLL
+b = call getVal a
+x = add b 5
+ptr = new LinkedList
+derefed = load ptr
+newlabel:
+branch x labeliftrue labeliffalse
+aaaaaaa = icmp ge 32 b
+p2 = load argA
+ret aaaaaaa
