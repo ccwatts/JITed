@@ -33,6 +33,7 @@ Any::~Any() {};
 */
 class TypedValue {
 public:
+    typedef std::map<std::string, std::shared_ptr<TypedValue>>* _RawValueMapPtr;
 
     Any value;
     std::string type;
@@ -45,6 +46,18 @@ public:
         return value.as<T>();
     }
 
+    bool isStruct() {
+        // type::name
+        return value.is<_RawValueMapPtr>();
+        // return !(type == ast::IntType::name() ||
+        //          type == ast::BoolType::name() ||
+        //          type == ast::VoidType::name());
+    }
+
+    bool isNull() {
+        return isStruct() && value.as<_RawValueMapPtr>() == nullptr;
+    }
+
     std::string toString() {
         if (type == ast::IntType::name()) {
             return std::to_string(value.as<int>());
@@ -52,10 +65,10 @@ public:
             return (value.as<bool>()) ? "true" : "false";
         } else if (type == ast::VoidType::name()) {
             return "void"; // ???
-        } else if (type == ast::Type::name()) {
+        } else if (isNull()) {
             return "null";
         } else {
-            return "struct_TODO";
+            return "0x" + std::to_string((long long int) value.as<_RawValueMapPtr>());
         }
     }
 };
@@ -78,11 +91,13 @@ private:
         }
     }
 
-    typedef std::map<std::string, TypedValuePtr> Scope;
+    typedef std::map<std::string, TypedValuePtr> ValueMap;
+    // typedef std::shared_ptr<ValueMap> ValueMapPtr;
 
-    Scope globals;
-    std::vector<Scope> scopes;
+    ValueMap globals;
+    std::vector<ValueMap> scopes;
     std::map<std::string, ast::FunctionPtr> funcs;
+    std::map<std::string, ValueMap> structs; // instances of structs to copy from
     ast::ProgramPtr program;
 
     TypedValuePtr lookup(std::string name) {
@@ -97,15 +112,15 @@ private:
         return nullptr;
     }
 
-    Scope bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params) {
-        Scope newScope;
+    ValueMap bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params) {
+        ValueMap newScope;
         if (params.size() != args.size()) {
             throw std::runtime_error("arg and param list were not the same length");
         }
         for (int i = 0; i < args.size(); ++i) {
             TypedValue tv = args.at(i)->accept(this);
             TypedValuePtr dec = params.at(i)->accept(this);
-            if (tv.type != dec->type) {
+            if (tv.type != dec->type && !(tv.isStruct() && dec->isStruct())) {
                 throw std::runtime_error("incorrect type for arg-param binding");
             }
             dec->value = tv.value;
@@ -123,8 +138,7 @@ public:
             return nullptr;
         }
         TypedValue source = statement->source->accept(this);
-        // TODO: CHANGE FALSE FOR STRUCT CONDITIONS
-        if (target->type == source.type || false) {
+        if (target->type == source.type || (target->isStruct() && source.isStruct())) {
             target->value = source.value;
         } else {
             // error
@@ -145,14 +159,17 @@ public:
 
         // these are done in advance since the operand types aren't constrained
         if (expression->op == ast::BinaryExpression::Operator::EQ) {
-            if (lft.type != rht.type) {
+            if (lft.isStruct() && rht.isStruct()) {
+                return TypedValue(ast::BoolType::name(), lft.get<ValueMap*>() == rht.get<ValueMap*>());
+            } else if (lft.type != rht.type) {
                 return TypedValue(ast::BoolType::name(), false);
             } else if (lft.type == ast::IntType::name()) {
                 return TypedValue(ast::BoolType::name(), lft.get<int>() == rht.get<int>());
             } else if (lft.type == ast::BoolType::name()) {
                 return TypedValue(ast::BoolType::name(), lft.get<bool>() == rht.get<bool>());
             } else {
-                throw std::runtime_error("struct comparison unimplemented");
+                return TypedValue(ast::BoolType::name(), false);
+                // throw std::runtime_error("struct comparison unimplemented");
             }
         } else if (expression->op == ast::BinaryExpression::Operator::NE) {
             if (lft.type != rht.type) {
@@ -231,13 +248,32 @@ public:
             std::cerr << "error: cannot instantiate a variable with void type\n";
             std::exit(1);
         } else {
-            throw std::runtime_error("struct variables not implemented");
+            return std::make_shared<TypedValue>(typeStr, static_cast<ValueMap*>(nullptr));
         }
         return nullptr;
     }
 
-    // Any visit(ast::DeleteStatement* statement) override
-    // Any visit(ast::DotExpression* expression) override
+    Any visit(ast::DeleteStatement* statement) override {
+        TypedValue toDelete = statement->expression->accept(this);
+        delete toDelete.get<ValueMap*>();
+        return nullptr;
+    }
+
+    Any visit(ast::DotExpression* expression) override {
+        TypedValue left = expression->left->accept(this);
+        if (!(left.isStruct())) {
+            throw std::runtime_error(std::to_string(expression->line) + ": invalid struct for dot expression");
+        } else if (left.isNull()) {
+            throw std::runtime_error(std::to_string(expression->line) + ": null used in dot expression");
+        }
+        ValueMap* vm = left.get<ValueMap*>();
+        // this should be left raw, no check
+        if (vm->count(expression->id)) {
+            return *(vm->at(expression->id));
+        } else {
+            throw std::runtime_error(std::to_string(expression->line) + ": invalid field in dot expression");
+        }
+    }
 
     Any visit(ast::FalseExpression* expression) override {
         return TypedValue(ast::BoolType::name(), false);
@@ -270,11 +306,11 @@ public:
     Any visit(ast::InvocationExpression* expression) override {
         /* we may need more in-depth scoping rules than this, fwiw */
         if (funcs.count(expression->name) == 0) {
-            throw std::runtime_error("call to undefined function");
+            throw std::runtime_error(std::to_string(expression->line) + ": call to undefined function");
         }
         ast::FunctionPtr f = funcs.at(expression->name);
 
-        Scope s = bindArgs(expression->arguments, f->params);
+        ValueMap s = bindArgs(expression->arguments, f->params);
         scopes.push_back(s);
 
         TypedValue retVal = f->accept(this);
@@ -287,18 +323,40 @@ public:
         // but the parser should rule that out, probably.
         return statement->expression->accept(this);
     }
-    // Any visit(ast::LvalueDot* lvalue) override
+
+    Any visit(ast::LvalueDot* lvalue) override {
+        TypedValue left = lvalue->left->accept(this);
+        if (!(left.isStruct())) {
+            throw std::runtime_error(std::to_string(lvalue->line) + ": invalid lvalue for dot expression");
+        } else if (left.isNull()) {
+            throw std::runtime_error(std::to_string(lvalue->line) + ": null lvalue for dot expression");
+        }
+        ValueMap* vm = left.get<ValueMap*>();
+        // still feels gross
+        if (vm->count(lvalue->id)) {
+            return vm->at(lvalue->id);
+        } else {
+            throw std::runtime_error(std::to_string(lvalue->line) + ": invalid field in dot expression");
+        }
+    }
 
     Any visit(ast::LvalueId* lvalue) override {
         // should return a TypedValuePtr
         return lookup(lvalue->id);
     }
 
-    // Any visit(ast::NewExpression* expression) override
+    Any visit(ast::NewExpression* expression) override {
+        // TODO MAYBE THIS NEEDS TO BE STRUCT + ID AND NOT JUST ID
+        if (structs.count(expression->id)) {
+            return TypedValue(expression->id, new ValueMap(structs.at(expression->id)));
+        } else {
+            throw std::runtime_error(std::to_string(expression->line) + ": new expression of nonexistent struct");
+        }
+    }
 
     Any visit(ast::NullExpression* expression) override {
         // currently Type::name() is null; perhaps unintuitive?
-        return TypedValue(ast::Type::name(), nullptr);
+        return TypedValue(ast::Type::nullName(), static_cast<ValueMap*>(nullptr));
     }
 
     Any visit(ast::PrintLnStatement* statement) override {
@@ -323,11 +381,17 @@ public:
         globals.clear();
         scopes.clear();
         funcs.clear();
-        scopes.push_back(Scope()); // scope for main
+        structs.clear();
+
+        scopes.push_back(ValueMap()); // scope for main
         for (ast::DeclarationPtr d : program->decls) {
             // get the globals
             TypedValuePtr decRes = d->accept(this);
             globals.insert({d->name, decRes});
+        }
+
+        for (ast::TypeDeclarationPtr td : program->types) {
+            structs.insert({td->name, td->accept(this)});
         }
 
         // check to see if main actually returned something?
@@ -344,12 +408,17 @@ public:
             return 1;
         }
 
-        TypedValue result = mainFn->accept(this);
-        if (result.type != ast::IntType::name()) {
+        Any result = mainFn->accept(this);
+        if (!result.is<TypedValue>()) {
+            std::cerr << "error: main did not return a value\n";
+            return 1;
+        }
+        TypedValue retVal = result.as<TypedValue>();
+        if (retVal.type != ast::IntType::name()) {
             std::cerr << "error: main did not return an int\n";
             return 1;
         } else {
-            return result.get<int>();
+            return retVal.get<int>();
         }
         return 1;
     }
@@ -384,7 +453,13 @@ public:
         return TypedValue(ast::BoolType::name(), true);
     }
 
-    // Any visit(ast::TypeDeclaration* typeDeclaration) override
+    Any visit(ast::TypeDeclaration* typeDeclaration) override {
+        ValueMap m;
+        for (auto dec : typeDeclaration->fields) {
+            m.insert({dec->name, dec->accept(this)});
+        }
+        return m;
+    }
 
     Any visit(ast::UnaryExpression* expression) override {
         TypedValue operand = expression->operand->accept(this);

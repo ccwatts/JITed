@@ -1,3 +1,9 @@
+struct A
+{
+   int x;
+   int y;
+};
+
 int x;
 
 fun changeX(int x) int {
@@ -5,12 +11,17 @@ fun changeX(int x) int {
     return x;
 }
 
+fun getA() struct A {
+    return new A;
+}
+
 fun main() int
 {
-    int x;
-    x = 3;
-    print x endl;
-    print changeX(x) endl;
-    print x endl;
+    struct A a;
+    print a endl;
+    a = getA();
+    print a endl;
+    a.x = 5;
+    print a.x endl;
     return 0;
 }

@@ -59,10 +59,10 @@ fun main() int
       {
          print 3 endl;
       }
-      while (true)
-      {
-         print 7;
-      }
+      #while (true)
+      #{
+      #   print 7;
+      #}
       f(g(1,new B),new B);
       print f(g(1,new B),new B).i endl;
    }

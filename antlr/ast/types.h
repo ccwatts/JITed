@@ -13,7 +13,8 @@ class ASTVisitor;
 
 class Type {
 public:
-    static std::string name() { return "null"; }
+    static std::string name() { return "generic_type"; }
+    static std::string nullName() { return "null"; }
 
     virtual Any accept(ASTVisitor* v) {
         throw std::runtime_error("Error: Visit function not implemented.");
