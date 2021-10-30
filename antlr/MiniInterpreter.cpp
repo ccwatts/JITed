@@ -26,7 +26,7 @@ using antlrcpp::Any;
 using mini::proxy;
 
 // wtf? why is this necessary
-Any::~Any() {};
+// Any::~Any() {};
 
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
@@ -64,11 +64,13 @@ public:
         } else if (type == ast::BoolType::name()) {
             return (value.as<bool>()) ? "true" : "false";
         } else if (type == ast::VoidType::name()) {
-            return "void"; // ???
+            return "void"; // should not be returned from anything...
         } else if (isNull()) {
             return "null";
         } else {
-            return "0x" + std::to_string((long long int) value.as<_RawValueMapPtr>());
+            std::ostringstream oss;
+            oss << value.as<_RawValueMapPtr>();
+            return oss.str();
         }
     }
 };
@@ -313,7 +315,9 @@ public:
         ValueMap s = bindArgs(expression->arguments, f->params);
         scopes.push_back(s);
 
-        TypedValue retVal = f->accept(this);
+        // watch on this: shouldn't cause any issues, since it being returned as an Any
+        // just ends up being casted later on
+        Any retVal = f->accept(this);
         scopes.pop_back();
         return retVal;
     }
@@ -346,7 +350,6 @@ public:
     }
 
     Any visit(ast::NewExpression* expression) override {
-        // TODO MAYBE THIS NEEDS TO BE STRUCT + ID AND NOT JUST ID
         if (structs.count(expression->id)) {
             return TypedValue(expression->id, new ValueMap(structs.at(expression->id)));
         } else {

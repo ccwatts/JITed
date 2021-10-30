@@ -226,7 +226,7 @@ protected:
     std::string field_type;
     int idx;
 public:
-    GetStatement(std::string target, Operand derefed, std::string field) : Statement(target), derefed(derefed), field(field), idx(-1), field_type(UNKNOWN_TYPE) {}
+    GetStatement(std::string target, Operand derefed, std::string field, int idx=-1) : Statement(target), derefed(derefed), field(field), idx(idx), field_type(UNKNOWN_TYPE) {}
 
     std::string typestr() {
         return "get";
@@ -572,6 +572,7 @@ public:
 };
 
 class ReturnStatement : public Statement {
+private:
     Operand retval;
 public:
     ReturnStatement(Operand retval) : Statement(), retval(retval) {};

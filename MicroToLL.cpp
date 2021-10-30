@@ -18,12 +18,14 @@ using namespace llvm;
 using namespace MicroLLVM;
 
 std::shared_ptr<Statement> parse(std::string s) {
-    std::regex assignment("([a-zA-Z][a-zA-Z0-9]*) *= *([^ ].*)$");
-    std::regex ret("ret +([a-zA-Z0-9]+)$");
-    std::regex store("store +([a-zA-Z0-9]+) +([a-zA-Z0-9]+)$");
-    std::regex branch_cond("branch +([a-zA-Z0-9]+) +([a-zA-Z0-9]+) +([a-zA-Z0-9]+)$"); // br <condition> <target>
-    std::regex branch_uncond("branch +([a-zA-Z0-9]+)");
-    std::regex label("([a-zA-Z][a-zA-Z0-9]*):");
+    std::string var = "([a-zA-Z][a-zA-Z0-9]*)";
+    std::string value = "([a-zA-Z0-9]+)";
+    std::regex assignment(var + " += +([^ ].*) *$");
+    std::regex ret("ret +" + value + " *$");
+    std::regex store("store +" + value + " +" + var + " *$");
+    std::regex branch_cond("branch +" + value + " +" + var + " +" + var + " *$"); // br <condition> <target>
+    std::regex branch_uncond("branch +" + value + " *$");
+    std::regex label(var + ": *$");
 
     std::smatch m;
     // bool is_asgn = std::regex_match(s, m, assignment);

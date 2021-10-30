@@ -15,6 +15,14 @@ fun getA() struct A {
     return new A;
 }
 
+fun printsomething() void {
+    print 1;
+    print 2;
+    print 3;
+    print 4;
+    print 2 + 3 endl;
+}
+
 fun main() int
 {
     struct A a;
@@ -23,5 +31,7 @@ fun main() int
     print a endl;
     a.x = 5;
     print a.x endl;
+    delete a;
+    printsomething();
     return 0;
 }
