@@ -14,9 +14,11 @@ define dso_local { i32*, i8** } @ut(i32* %0, i8** %1) #0 {
   store i8** %1, i8*** %7, align 8
   %8 = bitcast %struct.union_t* %3 to i8*
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* align 8 %8, i8* align 8 bitcast (%struct.union_t* @__const.ut.rt to i8*), i64 16, i1 false)
+  call void @escapeCtx()
   %9 = bitcast %struct.union_t* %3 to { i32*, i8** }*
   %10 = load { i32*, i8** }, { i32*, i8** }* %9, align 8
   ret { i32*, i8** } %10
 }
 
 declare void @llvm.memcpy.p0i8.p0i8.i64(i8* noalias nocapture writeonly, i8* noalias nocapture readonly, i64, i1 immarg) #1
+declare void @escapeCtx()

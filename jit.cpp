@@ -9,14 +9,25 @@
 #include "inputs/generic.h"
 using namespace llvm;
 
+namespace lljit {
+    
+extern "C" void escapeCtx() {
+    std::cout << "!!!";
+};
+
 class ModuleCompiler {
 private:
 public:
+    static void dontLogErrors(Error Err) {
+        // logAllUnhandledErrors(std::move(Err), errs(), "JIT session error (...): ");
+    }
+
     std::unique_ptr<orc::LLJIT> jit;
     orc::MangleAndInterner mangler;
 
     ModuleCompiler(std::unique_ptr<orc::LLJIT> jit, orc::MangleAndInterner mangler) : jit(std::move(jit)), mangler(mangler) {
         loadCommon();
+        // std::cout << &jit->getExecutionSession();
     };
 
     static Expected<std::unique_ptr<ModuleCompiler>> create() {
@@ -25,6 +36,8 @@ public:
     
         if (!jit)
             return jit.takeError();
+        
+        (*jit)->getExecutionSession().setErrorReporter(dontLogErrors);
 
         return std::make_unique<ModuleCompiler>(std::move(*jit), mangler);
     }
@@ -42,7 +55,19 @@ public:
             }
         );
 
-        jit->getMainJITDylib().addGenerator(std::move(DG.get()));
+        auto &jd = jit->getMainJITDylib();
+        jd.addGenerator(std::move(DG.get()));
+        auto s = orc::absoluteSymbols({
+            {
+                mangler("escapeCtx"),
+                JITEvaluatedSymbol(pointerToJITTargetAddress(&escapeCtx), JITSymbolFlags::Exported)
+            }
+        });
+        Error e = jd.define(s);
+        if (e) {
+            errs() << e;
+            return;
+        }
     }
 
     int addFile(char* fname) {
@@ -71,15 +96,20 @@ public:
     */
 
     void* getSym(char* name) {
-        auto sym = jit->lookup(name);
-        if (sym) {
-            return (void*) sym->getAddress();
-        } else {
+        auto res = jit->lookup(name);
+        if (auto e = res.takeError()) {
             return NULL;
+        } else {
+            return (void*) res->getAddress();
         }
+    }
+
+    void runFunction(char* name, struct union_t args) {
+        ;
     }
 };
 
+}
 // parse assembly string...?
 
 int main(int argc, char** argv) {
@@ -89,8 +119,9 @@ int main(int argc, char** argv) {
     InitializeAllTargetMCs();
     InitializeAllAsmPrinters();
 
-    std::unique_ptr<ModuleCompiler> J = std::move(*ModuleCompiler::create());
+    auto J = std::move(*lljit::ModuleCompiler::create());
 
+    J->addFile("inputs/struct.ll");
     J->addFile(argv[1]);
     auto* fptr = (struct union_t (*)(struct union_t)) J->getSym(argv[2]);
     if (fptr) {
@@ -100,7 +131,5 @@ int main(int argc, char** argv) {
         std::cout << res.strs << std::endl;
         std::cout << res.strs[0] << std::endl;
     }
-
-    
 }
 //

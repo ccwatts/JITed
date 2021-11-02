@@ -5,6 +5,7 @@
 #include <memory>
 #include "types.h"
 #include "visitors.h"
+#include "expressions.h"
 
 #include "antlr4-runtime.h"
 using antlrcpp::Any;

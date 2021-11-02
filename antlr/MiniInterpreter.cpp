@@ -25,9 +25,6 @@
 using antlrcpp::Any;
 using mini::proxy;
 
-// wtf? why is this necessary
-// Any::~Any() {};
-
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
 */

@@ -8,9 +8,18 @@ namespace minic {
 
 class Value {
 public:
-    virtual std::string toString();
-    virtual std::string typeStr();
-    virtual bool isRegister();
+    virtual std::string toString() {
+        throw std::runtime_error("error: unimplemented value method");
+    }
+    virtual std::string typeStr() {
+        throw std::runtime_error("error: unimplemented value method");
+    }
+    virtual bool isRegister() {
+        throw std::runtime_error("error: unimplemented value method");
+    }
+    virtual bool isNull() {
+        throw std::runtime_error("error: unimplemented value method");
+    }
 };
 typedef std::shared_ptr<Value> ValuePtr;
 typedef std::vector<ValuePtr> Values;
@@ -24,79 +33,72 @@ private:
 public:
     std::string label;
 
-    Register() : type("i32"), label("u" + std::to_string(ctr++)) {};
-    Register(std::string type) : type(type), label("u" + std::to_string(ctr++)) {};
+    Register();
+    Register(std::string type);
 
-    std::string toString() override {
-        return "%" + label;
-    }
-
-    std::string typeStr() override {
-        return type;
-    }
-
-    bool equals(Register* other) {
-        return other != nullptr && this->toString() == other->toString();
-    }
-
-    bool isRegister() override {
-        return true;
-    }
-
-    static std::shared_ptr<Register> get(std::string type="i32") {
-        return std::make_shared<Register>(type);
-    }
+    std::string toString() override;
+    std::string typeStr() override;
+    bool equals(Register* other);
+    bool isRegister() override;
+    bool isNull() override;
+    static std::shared_ptr<Register> get(std::string type="i32");
 };
 typedef std::shared_ptr<Register> RegisterPtr;
-int Register::ctr = 0;
 
 class Immediate : public Value {
 public:
     int value;
 
-    Immediate(int value) : value(value) {};
+    Immediate(int value);
 
-    std::string toString() override {
-        return std::to_string(value);
-    }
+    std::string toString();
 
-    std::string typeStr() override {
-        return "i32";
-    }
+    std::string typeStr() override;
 
-    bool isRegister() override {
-        return false;
-    }
+    bool isRegister() override;
 
-    static std::shared_ptr<Immediate> get(int value) {
-        return std::make_shared<Immediate>(value);
-    }
+    bool isNull() override;
+
+    static std::shared_ptr<Immediate> get(int value);
 };
 typedef std::shared_ptr<Immediate> ImmediatePtr;
 
 class NullValue : public Value {
 private:
-    std::string structType;
 public:
-    NullValue(std::string structType="null") : structType(structType) {};
+    std::string structType;
+    NullValue(std::string structType);
 
-    std::string toString() override {
-        return "null";
-    }
+    std::string toString() override;
 
-    std::string typeStr() override {
-        return structType;
-    }
+    std::string typeStr() override;
 
-    bool isRegister() override {
-        return false;
-    }
+    bool isRegister() override;
 
-    static std::shared_ptr<NullValue> get(std::string structType="null") {
-        return std::make_shared<NullValue>(structType);
-    }
+    bool isNull() override;
+
+    static std::shared_ptr<NullValue> get(std::string structType="");
 };
 // i don't want it to be "NullPtr" since it's too close to nullptr
 typedef std::shared_ptr<NullValue> NullValuePtr; 
+
+class Global : public Value {
+private:
+    std::string type;
+public:
+    std::string name;
+
+    Global(std::string name, std::string type);
+
+    std::string toString() override;
+
+    std::string typeStr() override;
+
+    bool isRegister() override;
+
+    bool isNull() override;
+
+    static std::shared_ptr<Global> get(std::string name, std::string type);
+};
 
 }
