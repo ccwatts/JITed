@@ -14,6 +14,7 @@
 #include "lib/rtti.h"
 
 #include "MiniToAstVisitors.h"
+
 #include "tl/values.h"
 #include "tl/block.h"
 #include "tl/instructions.h"
