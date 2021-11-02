@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "expressions.h"
 #include "types.h"
 #include "visitors.h"
-#include "expressions.h"
 
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
@@ -18,15 +18,10 @@ class StatementVisitor;
 
 class Statement {
 public:
-    Statement(int line) : line(line) {};
-
     int line;
-    virtual Any accept(ASTVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    }
-    virtual Any accept(StatementVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    }
+    Statement(int line);
+    virtual Any accept(ASTVisitor* v);
+    virtual Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<Statement> StatementPtr;
 
@@ -38,10 +33,9 @@ public:
     TypePtr type;
     std::string name;
 
-    Declaration(int line, TypePtr type, std::string name) : line(line), type(type), name(name) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    Declaration(int line, TypePtr type, std::string name);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<Declaration> DeclarationPtr;
 
@@ -55,11 +49,9 @@ public:
     std::vector<DeclarationPtr> params, locals;
     StatementPtr body;
 
-    Function(int line, std::string name, std::vector<DeclarationPtr> params, TypePtr retType, std::vector<DeclarationPtr> locals, StatementPtr body) :
-        line(line), name(name), retType(retType), params(params), locals(locals), body(body) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    Function(int line, std::string name, std::vector<DeclarationPtr> params, TypePtr retType, std::vector<DeclarationPtr> locals, StatementPtr body);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<Function> FunctionPtr;
 
@@ -71,10 +63,8 @@ public:
     std::string name;
     std::vector<DeclarationPtr> fields;
 
-    // TypeDeclaration(int line, std::string name, std::vector<Declaration> fields);
-    TypeDeclaration(int line, std::string name, std::vector<DeclarationPtr> fields) : line(line), name(name), fields(fields) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
+    TypeDeclaration(int line, std::string name, std::vector<DeclarationPtr> fields);
+    Any accept(ASTVisitor* v);
 };
 typedef std::shared_ptr<TypeDeclaration> TypeDeclarationPtr;
 
@@ -87,10 +77,9 @@ public:
     LvaluePtr target;
     ExpressionPtr source;
 
-    AssignmentStatement(int line, LvaluePtr target, ExpressionPtr source) : Statement(line), target(target), source(source) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    AssignmentStatement(int line, LvaluePtr target, ExpressionPtr source);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<AssignmentStatement> AssignmentStatementPtr;
 
@@ -99,14 +88,10 @@ typedef std::shared_ptr<AssignmentStatement> AssignmentStatementPtr;
 class BlockStatement : public Statement {
 public:
     std::vector<StatementPtr> statements;
-    BlockStatement(int line, std::vector<StatementPtr> statements) : Statement(line), statements(statements) {};
-
-    static std::shared_ptr<BlockStatement> emptyBlock() {
-        return std::make_shared<BlockStatement>(-1, std::vector<StatementPtr>());
-    }
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    BlockStatement(int line, std::vector<StatementPtr> statements);
+    static std::shared_ptr<BlockStatement> emptyBlock();
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<BlockStatement> BlockStatementPtr;
 
@@ -117,11 +102,9 @@ public:
     ExpressionPtr guard;
     StatementPtr thenBlock, elseBlock;
 
-    ConditionalStatement(int line, ExpressionPtr guard, StatementPtr thenBlock, StatementPtr elseBlock) :
-        Statement(line), guard(guard), thenBlock(thenBlock), elseBlock(elseBlock) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    ConditionalStatement(int line, ExpressionPtr guard, StatementPtr thenBlock, StatementPtr elseBlock);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<ConditionalStatement> ConditionalStatementPtr;
 
@@ -131,10 +114,9 @@ class DeleteStatement : public Statement {
 public:
     ExpressionPtr expression;
 
-    DeleteStatement(int line, ExpressionPtr expression) : Statement(line), expression(expression) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    DeleteStatement(int line, ExpressionPtr expression);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<DeleteStatement> DeleteStatementPtr;
 
@@ -144,10 +126,9 @@ class InvocationStatement : public Statement {
 public:
     ExpressionPtr expression;
 
-    InvocationStatement(int line, ExpressionPtr expression) : Statement(line), expression(expression) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    InvocationStatement(int line, ExpressionPtr expression);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<InvocationStatement> InvocationStatementPtr;
 
@@ -157,10 +138,9 @@ class PrintLnStatement : public Statement {
 public:
     ExpressionPtr expression;
 
-    PrintLnStatement(int line, ExpressionPtr expression) : Statement(line), expression(expression) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    PrintLnStatement(int line, ExpressionPtr expression);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<PrintLnStatement> PrintLnStatementPtr;
 
@@ -170,10 +150,9 @@ class PrintStatement : public Statement {
 public:
     ExpressionPtr expression;
 
-    PrintStatement(int line, ExpressionPtr expression) : Statement(line), expression(expression) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    PrintStatement(int line, ExpressionPtr expression);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<PrintStatement> PrintStatementPtr;
 
@@ -181,10 +160,9 @@ typedef std::shared_ptr<PrintStatement> PrintStatementPtr;
 
 class ReturnEmptyStatement : public Statement {
 public:
-    ReturnEmptyStatement(int line) : Statement(line) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    ReturnEmptyStatement(int line);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<ReturnEmptyStatement> ReturnEmptyStatementPtr;
 
@@ -194,11 +172,11 @@ class ReturnStatement : public Statement {
 public:
     ExpressionPtr expression;
 
-    ReturnStatement(int line, ExpressionPtr expression) : Statement(line), expression(expression) {};
-    ~ReturnStatement() {};
+    ReturnStatement(int line, ExpressionPtr expression);
+    // ~ReturnStatement() {};
     
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<ReturnStatement> ReturnStatementPtr;
 
@@ -209,10 +187,9 @@ public:
     ExpressionPtr guard;
     StatementPtr body;
 
-    WhileStatement(int line, ExpressionPtr guard, StatementPtr body) : Statement(line), guard(guard), body(body) {};
-    
-    Any accept(ASTVisitor* v) { return v->visit(this); }
-    Any accept(StatementVisitor* v) { return v->visit(this); }
+    WhileStatement(int line, ExpressionPtr guard, StatementPtr body);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<WhileStatement> WhileStatementPtr;
 

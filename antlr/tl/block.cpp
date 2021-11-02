@@ -135,7 +135,7 @@ void Phi::resolve() {
         blocks.push_back(b);
         values.push_back(val);
 
-        oss << "[" << val->toString() << ", %" << b->label << "]";
+        oss << " [" << val->toString() << ", %" << b->label << "]";
         if (i + 1 < block->fromNodes.size()) {
             oss << ", ";
         }

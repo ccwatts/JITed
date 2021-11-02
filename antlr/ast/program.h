@@ -3,10 +3,10 @@
 #include <vector>
 #include <memory>
 
-#include "expressions.h"
 #include "statements.h"
-#include "types.h"
 #include "visitors.h"
+#include "program.h"
+
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
@@ -18,16 +18,9 @@ public:
     std::vector<DeclarationPtr> decls;
     std::vector<FunctionPtr> funcs;
 
-    Program(std::vector<TypeDeclarationPtr> types, std::vector<DeclarationPtr> decls, std::vector<FunctionPtr> funcs) :
-        types(types), decls(decls), funcs(funcs) {};
-        
-    Any accept(ASTVisitor* v) {
-        return v->visit(this);
-    }
-
-    Any accept(StatementVisitor* v) {
-        return v->visit(this);
-    }
+    Program(std::vector<TypeDeclarationPtr> types, std::vector<DeclarationPtr> decls, std::vector<FunctionPtr> funcs);
+    Any accept(ASTVisitor* v);
+    Any accept(StatementVisitor* v);
 };
 typedef std::shared_ptr<Program> ProgramPtr;
 

@@ -4,7 +4,23 @@
 #include <memory>
 
 namespace minic {
-    
+
+std::string Value::toString() {
+    throw std::runtime_error("error: unimplemented value method");
+}
+
+std::string Value::typeStr() {
+    throw std::runtime_error("error: unimplemented value method");
+}
+
+bool Value::isRegister() {
+    throw std::runtime_error("error: unimplemented value method");
+}
+
+bool Value::isNull() {
+    throw std::runtime_error("error: unimplemented value method");
+}
+
 int Register::ctr = 0;
 
 Register::Register() : type("i32"), label("u" + std::to_string(ctr++)) {};

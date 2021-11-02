@@ -15,18 +15,10 @@ namespace minic {
 class Instruction {
 public:
     // virtual void replace(ValuePtr v, ValuePtr with);
-    virtual std::string toString() {
-        throw std::runtime_error("error: unimplemented instruction method");
-    }
-    virtual RegisterPtr getTarget() {
-        throw std::runtime_error("error: unimplemented instruction method");
-    }
-    virtual Values getSources() {
-        throw std::runtime_error("error: unimplemented instruction method");
-    }
-    virtual Values allValues() {
-        throw std::runtime_error("error: unimplemented instruction method");
-    }
+    virtual std::string toString();
+    virtual RegisterPtr getTarget();
+    virtual Values getSources();
+    virtual Values allValues();
 };
 typedef std::shared_ptr<Instruction> InstructionPtr;
 

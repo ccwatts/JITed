@@ -11,35 +11,21 @@ using antlrcpp::Any;
 
 namespace ast {
 
-class ASTVisitor;
-class ExpressionVisitor;
-
 class Expression {
 public:
     int line;
-    Expression(int line) : line(line) {};
-
-    virtual Any accept(ASTVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    };
-
-    virtual Any accept(ExpressionVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    };
+    Expression(int line);
+    virtual Any accept(ASTVisitor* v);
+    virtual Any accept(ExpressionVisitor* v);
 };
 typedef std::shared_ptr<Expression> ExpressionPtr;
 
 class Lvalue {
 public:
     int line;
-    Lvalue(int line) : line(line) {};
-
-    virtual Any accept(ASTVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    };
-    virtual Any accept(ExpressionVisitor* v) {
-        throw std::runtime_error("Error: Visit function not implemented.");
-    };
+    Lvalue(int line);
+    virtual Any accept(ASTVisitor* v);
+    virtual Any accept(ExpressionVisitor* v);
 };
 typedef std::shared_ptr<Lvalue> LvaluePtr;
 
@@ -50,10 +36,9 @@ public:
     ExpressionPtr left;
     std::string id;
 
-    LvalueDot(int line, ExpressionPtr left, std::string id) : Lvalue(line), left(left), id(id) {};
-
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    LvalueDot(int line, ExpressionPtr left, std::string id);
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<LvalueDot> LvalueDotPtr;
 
@@ -62,10 +47,10 @@ typedef std::shared_ptr<LvalueDot> LvalueDotPtr;
 class LvalueId : public Lvalue {
 public:
     std::string id;
-    LvalueId(int line, std::string id) : Lvalue(line), id(id) {};
+    LvalueId(int line, std::string id);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<LvalueId> LvalueIdPtr;
 
@@ -92,27 +77,10 @@ public:
     ExpressionPtr left, right;
 private:
 public:
-    BinaryExpression(int line, Operator op, ExpressionPtr left, ExpressionPtr right) : Expression(line), op(op), left(left), right(right) {}
-    BinaryExpression(int line, std::string ops, ExpressionPtr left, ExpressionPtr right) : Expression(line), left(left), right(right) {
-        if      (ops == "*")  op = Operator::TIMES;
-        else if (ops == "/")  op = Operator::DIVIDE;
-        else if (ops == "+")  op = Operator::PLUS;
-        else if (ops == "-")  op = Operator::MINUS;
-        else if (ops == "<")  op = Operator::LT;
-        else if (ops == "<=") op = Operator::LE;
-        else if (ops == ">")  op = Operator::GT;
-        else if (ops == ">=") op = Operator::GE;
-        else if (ops == "==") op = Operator::EQ;
-        else if (ops == "!=") op = Operator::NE;
-        else if (ops == "&&") op = Operator::AND;
-        else if (ops == "||") op = Operator::OR;
-        else {
-            throw std::runtime_error("error: invalid opcode for binaryexpression");
-        }
-    }
-
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    BinaryExpression(int line, Operator op, ExpressionPtr left, ExpressionPtr right);
+    BinaryExpression(int line, std::string ops, ExpressionPtr left, ExpressionPtr right);
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<BinaryExpression> BinaryExpressionPtr;
 
@@ -123,10 +91,9 @@ public:
     ExpressionPtr left;
     std::string id;
 
-    DotExpression(int line, ExpressionPtr left, std::string id) : Expression(line), left(left), id(id) {};
-
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    DotExpression(int line, ExpressionPtr left, std::string id);
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<DotExpression> DotExpressionPtr;
 
@@ -134,10 +101,10 @@ typedef std::shared_ptr<DotExpression> DotExpressionPtr;
 
 class FalseExpression : public Expression {
 public:
-    FalseExpression(int line) : Expression(line) {};
+    FalseExpression(int line);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<FalseExpression> FalseExpressionPtr;
 
@@ -146,10 +113,10 @@ typedef std::shared_ptr<FalseExpression> FalseExpressionPtr;
 class IdentifierExpression : public Expression {
 public:
     std::string id;
-    IdentifierExpression(int line, std::string id) : Expression(line), id(id) {};
+    IdentifierExpression(int line, std::string id);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<IdentifierExpression> IdentifierExpressionPtr;
 
@@ -158,10 +125,10 @@ typedef std::shared_ptr<IdentifierExpression> IdentifierExpressionPtr;
 class IntegerExpression : public Expression {
 public:
     int value;
-    IntegerExpression(int line, int value) : Expression(line), value(value) {};
+    IntegerExpression(int line, int value);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<IntegerExpression> IntegerExpressionPtr;
 
@@ -171,10 +138,9 @@ class InvocationExpression : public Expression {
 public:
     std::string name;
     std::vector<ExpressionPtr> arguments;
-    InvocationExpression(int line, std::string name, std::vector<ExpressionPtr> arguments) : Expression(line), name(name), arguments(arguments) {};
-
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    InvocationExpression(int line, std::string name, std::vector<ExpressionPtr> arguments);
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<InvocationExpression> InvocationExpressionPtr;
 
@@ -183,10 +149,10 @@ typedef std::shared_ptr<InvocationExpression> InvocationExpressionPtr;
 class NewExpression : public Expression {
 public:
     std::string id;
-    NewExpression(int line, std::string id) : Expression(line), id(id) {};
+    NewExpression(int line, std::string id);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<NewExpression> NewExpressionPtr;
 
@@ -194,10 +160,10 @@ typedef std::shared_ptr<NewExpression> NewExpressionPtr;
 
 class NullExpression : public Expression {
 public:
-    NullExpression(int line) : Expression(line) {};
+    NullExpression(int line);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<NullExpression> NullExpressionPtr;
 
@@ -205,10 +171,10 @@ typedef std::shared_ptr<NullExpression> NullExpressionPtr;
 
 class ReadExpression : public Expression {
 public:
-    ReadExpression(int line) : Expression(line) {};
+    ReadExpression(int line);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<ReadExpression> ReadExpressionPtr;
 
@@ -216,10 +182,10 @@ typedef std::shared_ptr<ReadExpression> ReadExpressionPtr;
 
 class TrueExpression : public Expression {
 public:
-    TrueExpression(int line) : Expression(line) {};
+    TrueExpression(int line);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<TrueExpression> TrueExpressionPtr;
 
@@ -236,17 +202,11 @@ public:
     Operator op;
     ExpressionPtr operand;
 
-    UnaryExpression(int line, Operator op, ExpressionPtr operand) : Expression(line), op(op), operand(operand) {};
-    UnaryExpression(int line, std::string ops, ExpressionPtr operand) : Expression(line), operand(operand) {
-        if (ops == "!") op = Operator::NOT;
-        else if (ops == "-") op = Operator::MINUS;
-        else {
-            throw std::runtime_error("error: invalid opcode for binaryexpression");
-        }
-    };
+    UnaryExpression(int line, Operator op, ExpressionPtr operand);
+    UnaryExpression(int line, std::string ops, ExpressionPtr operand);
 
-    Any accept(ASTVisitor* v) override { return v->visit(this); };
-    Any accept(ExpressionVisitor* v) override { return v->visit(this); };
+    Any accept(ASTVisitor* v) override;
+    Any accept(ExpressionVisitor* v) override;
 };
 typedef std::shared_ptr<UnaryExpression> UnaryExpressionPtr;
 

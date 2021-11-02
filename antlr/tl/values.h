@@ -8,18 +8,10 @@ namespace minic {
 
 class Value {
 public:
-    virtual std::string toString() {
-        throw std::runtime_error("error: unimplemented value method");
-    }
-    virtual std::string typeStr() {
-        throw std::runtime_error("error: unimplemented value method");
-    }
-    virtual bool isRegister() {
-        throw std::runtime_error("error: unimplemented value method");
-    }
-    virtual bool isNull() {
-        throw std::runtime_error("error: unimplemented value method");
-    }
+    virtual std::string toString();
+    virtual std::string typeStr();
+    virtual bool isRegister();
+    virtual bool isNull();
 };
 typedef std::shared_ptr<Value> ValuePtr;
 typedef std::vector<ValuePtr> Values;

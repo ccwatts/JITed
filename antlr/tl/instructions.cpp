@@ -32,6 +32,20 @@ namespace minic {
 // };
 // typedef std::shared_ptr<Instruction> InstructionPtr;
 
+
+std::string Instruction::toString() {
+    throw std::runtime_error("error: unimplemented instruction method");
+}
+RegisterPtr Instruction::getTarget() {
+    throw std::runtime_error("error: unimplemented instruction method");
+}
+Values Instruction::getSources() {
+    throw std::runtime_error("error: unimplemented instruction method");
+}
+Values Instruction::allValues() {
+    throw std::runtime_error("error: unimplemented instruction method");
+}
+
 AllocInstruction::AllocInstruction(RegisterPtr target, std::string type) : target(target), type(type) {};
 
 std::string AllocInstruction::toString() {
