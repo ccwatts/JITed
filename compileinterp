@@ -1,1 +1,0 @@
-g++ MiniInterpreter.cpp MiniParser.cpp MiniLexer.cpp -lantlr4-runtime -g
