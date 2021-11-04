@@ -3,8 +3,6 @@
 #include <memory>
 #include "antlr4-runtime.h"
 
-antlrcpp::Any::~Any() {};
-
 namespace mini {
 
 // necessary to be able to upcast Any values containing derived classes
