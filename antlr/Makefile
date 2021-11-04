@@ -1,14 +1,14 @@
 CC=g++
 LDLIBS=-lantlr4-runtime
-CFLAGS=-c
+CFLAGS=-c -g
 
 all: compiler interpreter
 
 compiler: MiniCompiler.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o
-	$(CC) -o compiler MiniCompiler.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS)
+	$(CC) -o compiler MiniCompiler.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS) -g
 
 interpreter: MiniInterpreter.o MiniParser.o MiniLexer.o ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o
-	$(CC) -o interpreter MiniInterpreter.o MiniParser.o MiniLexer.o ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS)
+	$(CC) -o interpreter MiniInterpreter.o MiniParser.o MiniLexer.o ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS) -g
 
 
 MiniCompiler.o: MiniCompiler.cpp

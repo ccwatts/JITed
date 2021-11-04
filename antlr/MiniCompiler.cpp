@@ -44,17 +44,6 @@ private:
         return antlrcpp::Any(proxied);
     }
 
-    ValuePtr zext(ValuePtr v) {
-        if (v->typeStr() == "i1") {
-            RegisterPtr zexted_r = std::make_shared<Register>("i32");
-            InstructionPtr zext = std::make_shared<CastInstruction>(CastInstruction::Operator::ZEXT, zexted_r, v);
-            current->addInstruction(zext);
-            return zexted_r;
-        } else {
-            return v;
-        }
-    }
-
     BinaryInstruction::Operator convertBop(ast::BinaryExpression::Operator op) {
         switch (op) {
             case ast::BinaryExpression::Operator::TIMES:
@@ -96,6 +85,30 @@ public:
                             std::map<std::string, std::string>* locals, std::map<std::string, std::string>* globals,
                             std::map<std::string, ast::FunctionPtr>* functions) :
         current(current), structTable(structTable), locals(locals), globals(globals), functions(functions) {}; 
+
+    ValuePtr zext(ValuePtr v) {
+        if (v->typeStr() == "i1") {
+            RegisterPtr zexted_r = std::make_shared<Register>("i32");
+            InstructionPtr zext = std::make_shared<CastInstruction>(CastInstruction::Operator::ZEXT, zexted_r, v);
+            current->addInstruction(zext);
+            return zexted_r;
+        } else {
+            return v;
+        }
+    }
+
+    ValuePtr trunc(ValuePtr v) {
+        if (v->typeStr() == "i32") {
+            RegisterPtr trunc_r = std::make_shared<Register>("i32");
+            InstructionPtr trunc = std::make_shared<CastInstruction>(CastInstruction::Operator::TRUNC, trunc_r, v);
+            current->addInstruction(trunc);
+            return trunc_r;
+        } else if (v->typeStr() == "i1") {
+            return v;
+        } else {
+            return nullptr;
+        }
+    }
 
     void setCurrent(BlockPtr newCurrent) {
         this->current = newCurrent;
@@ -142,7 +155,7 @@ public:
 
         inst = std::make_shared<BinaryInstruction>(convertBop(expression->op), res, left, right);
         this->current->addInstruction(inst);
-        return res;
+        return proxy_val<Register>(res);
     }
     
     Any visit(ast::DotExpression* expression) override {
@@ -163,11 +176,11 @@ public:
         loadInstr = std::make_shared<LoadStoreInstruction>(LoadStoreInstruction::Operator::LOAD, reg2, reg1);
         this->current->addInstruction(loadInstr);
 
-        return reg2;
+        return proxy_val<Register>(reg2);
     }
     
     Any visit(ast::FalseExpression* expression) override {
-        return Immediate::get(0);
+        return proxy_val<Immediate>(Immediate::get(0));
     }
     
     Any visit(ast::IdentifierExpression* expression) override {
@@ -183,11 +196,11 @@ public:
             );
             this->current->addInstruction(inst);
         }
-        return reg;
+        return proxy_val<Value>(reg);
     }
 
     Any visit(ast::IntegerExpression* expression) override {
-        return Immediate::get(expression->value);
+        return proxy_val<Immediate>(Immediate::get(expression->value));
     }
 
     Any visit(ast::InvocationExpression* expression) override {
@@ -220,7 +233,7 @@ public:
             inst = std::make_shared<InvocationInstruction>(reg, argVals, retType, expression->name);
         }
         this->current->addInstruction(inst);
-        return reg;
+        return proxy_val<Register>(reg);
     }
 
     Any visit(ast::LvalueDot* lvalue) override {
@@ -233,7 +246,7 @@ public:
             reg, left, offset
         );
         this->current->addInstruction(getInstr);
-        return reg;
+        return proxy_val<Register>(reg);
     }
 
     Any visit(ast::LvalueId* lvalue) override {
@@ -243,7 +256,7 @@ public:
         } else {
             idType = globals->at(lvalue->id);
         }
-        return Register::get(idType);
+        return proxy_val<Register>(Register::get(idType));
     }
 
     Any visit(ast::NewExpression* expression) override {
@@ -258,22 +271,22 @@ public:
                         "i8*", "%struct." + expression->id + "*");
         this->current->addInstruction(callInstr);
         this->current->addInstruction(castInstr);
-        return cast;
+        return proxy_val<Register>(cast);
     }
     
     Any visit(ast::NullExpression* expression) override {
-        return NullValue::get();
+        return proxy_val<NullValue>(NullValue::get());
     }
     
     Any visit(ast::ReadExpression* expression) override {
         RegisterPtr reg = Register::get("i32");
         InstructionPtr call = std::make_shared<InvocationInstruction>(reg, Values(), "i32", "readInt");
         this->current->addInstruction(call);
-        return reg;
+        return proxy_val<Register>(reg);
     }
     
     Any visit(ast::TrueExpression* expression) override {
-        return Immediate::get(1);
+        return proxy_val<Immediate>(Immediate::get(1));
     }
     
     Any visit(ast::UnaryExpression* expression) override {
@@ -291,13 +304,14 @@ public:
                 break;
         }
         this->current->addInstruction(inst);
-        return reg;
+        return proxy_val<Register>(reg);
     }
 };
 
 class StatementToBlockVisitor : public ast::ASTVisitor {
 private:
     ast::ProgramPtr program;
+    ast::Function* currentFunction;
     ExpressionToValueVisitor expVisitor;
     Blocks blocks;
     BlockPtr current, retBlock;
@@ -374,6 +388,10 @@ private:
         }
         // why did i put haha here before?
     }
+
+    BlockPtr newBlock() {
+        return std::make_shared<Block>(currentFunction);
+    }
 public:
     StatementToBlockVisitor(ast::ProgramPtr program) : program(program) {
         structTable = std::map<std::string, StructInfoTable>();
@@ -398,7 +416,32 @@ public:
 
     // valueType is the same as just Type::toString
         
-    // Any visit(ast::AssignmentStatement* statement) override;
+    Any visit(ast::AssignmentStatement* statement) override {
+        ValuePtr lhs = statement->target->accept(&expVisitor);
+        ValuePtr rhs = statement->source->accept(&expVisitor);
+        rhs = expVisitor.zext(rhs);
+
+        if (statement->target->isDot()) {
+            current->addInstruction(
+                std::make_shared<LoadStoreInstruction>(
+                    LoadStoreInstruction::Operator::STORE, lhs, rhs
+                )
+            );
+        } else {
+            ast::LvalueIdPtr lhsV = std::dynamic_pointer_cast<ast::LvalueId>(statement->target);
+            if (!locals.count(lhsV->id)) {
+                GlobalPtr reg = Global::get(lhsV->id, globals.at(lhsV->id));
+                current->addInstruction(
+                    std::make_shared<LoadStoreInstruction>(
+                        LoadStoreInstruction::Operator::STORE, reg, rhs
+                    )
+                );
+            } else {
+                current->writeVariable(lhsV->id, rhs);
+            }
+        }
+        return current;
+    }
 
     // Any visit(ast::BinaryExpression* expression) override;
 
@@ -411,21 +454,83 @@ public:
     
     // Any visit(ast::BoolType* type) override;
 
-    // Any visit(ast::ConditionalStatement* statement) override;
+    Any visit(ast::ConditionalStatement* statement) override {
+        ValuePtr guard = statement->guard->accept(&expVisitor);
+        guard = expVisitor.trunc(guard);
+        BlockPtr thenEntry = newBlock(), elseEntry = newBlock(), join = newBlock();
+        thenEntry->assignLabel();
+        thenEntry->seal();
+        elseEntry->assignLabel();
+        elseEntry->seal();
+
+        blocks.push_back(thenEntry);
+        blocks.push_back(elseEntry);
+        InstructionPtr branch = std::make_shared<BranchInstruction>(guard, thenEntry, elseEntry);
+        current->addInstruction(branch);
+
+        current->connectTo(thenEntry);
+        current->connectTo(elseEntry);
+
+        setCurrent(thenEntry);
+        BlockPtr thenExit = statement->thenBlock->accept(this);
+
+        setCurrent(elseEntry);
+        BlockPtr elseExit = statement->elseBlock->accept(this);
+
+        join->assignLabel();
+
+        if (thenExit->toNodes.size() == 0 && thenExit != retBlock) {
+            InstructionPtr inst = std::make_shared<BranchInstruction>(join);
+            thenExit->addInstruction(inst);
+            thenExit->connectTo(join);
+        }
+        if (elseExit->toNodes.size() == 0 && elseExit != retBlock) {
+            InstructionPtr inst = std::make_shared<BranchInstruction>(join);
+            elseExit->addInstruction(inst);
+            elseExit->connectTo(join);
+        }
+        join->seal();
+
+        if (join->fromNodes.size() > 0) {
+            blocks.push_back(join);
+            return join;
+        } else {
+            return retBlock;
+        }
+    }
     
-    // Any visit(ast::Declaration* declaration) override;
+    Any visit(ast::Declaration* declaration) override {
+        RegisterPtr alloc = Register::get(declaration->type->toString());
+        current->writeVariable(declaration->name, alloc);
+        return current;
+    }
     
-    // Any visit(ast::DeleteStatement* statement) override;
+    Any visit(ast::DeleteStatement* statement) override {
+        ValuePtr reg = statement->expression->accept(&expVisitor);
+        RegisterPtr cast = Register::get("i8*");
+        InstructionPtr castInstr = std::make_shared<CastInstruction>(
+            CastInstruction::Operator::BITCAST, cast, reg, reg->typeStr(), "i8*"
+        );
+        current->addInstruction(castInstr);
+
+        Values args;
+        args.push_back(cast);
+        InstructionPtr call = std::make_shared<InvocationInstruction>(args, "void", "free");
+        current->addInstruction(call);
+        return current;
+    }
     
     // Any visit(ast::DotExpression* expression) override;
     
     // Any visit(ast::FalseExpression* expression) override;
     
     Any visit(ast::Function* function) override {
-        locals.clear();
-        setCurrent(std::make_shared<Block>(function));
+        currentFunction = function;
 
-        retBlock = std::make_shared<Block>(function);
+        locals.clear();
+        setCurrent(newBlock());
+
+        retBlock = newBlock();
         current->assignLabel();
         retBlock->assignLabel();
         processFunctionHeader(function);
@@ -474,7 +579,10 @@ public:
     
     // Any visit(ast::InvocationExpression* expression) override;
     
-    // Any visit(ast::InvocationStatement* statement) override;
+    Any visit(ast::InvocationStatement* statement) override {
+        statement->expression->accept(&expVisitor);
+        return current;
+    }
     
     // Any visit(ast::LvalueDot* lvalue) override;
 
@@ -484,9 +592,23 @@ public:
     
     // Any visit(ast::NullExpression* expression) override;
     
-    // Any visit(ast::PrintLnStatement* statement) override;
+    Any visit(ast::PrintLnStatement* statement) override {
+        ValuePtr reg = statement->expression->accept(&expVisitor);
+        Values args;
+        args.push_back(reg);
+        InstructionPtr inst = std::make_shared<InvocationInstruction>(args, "void", "printIntEndl");
+        current->addInstruction(inst);
+        return current;
+    }
     
-    // Any visit(ast::PrintStatement* statement) override;
+    Any visit(ast::PrintStatement* statement) override {
+        ValuePtr reg = statement->expression->accept(&expVisitor);
+        Values args;
+        args.push_back(reg);
+        InstructionPtr inst = std::make_shared<InvocationInstruction>(args, "void", "printInt");
+        current->addInstruction(inst);
+        return current;
+    }
     
     Any visit(ast::Program* program) override {
         throw std::runtime_error("error: program compilation not supported");
@@ -522,7 +644,37 @@ public:
     
     // Any visit(ast::VoidType* type) override;
 
-    // Any visit(ast::WhileStatement* statement) override;
+    Any visit(ast::WhileStatement* statement) override {
+        ValuePtr guard = statement->guard->accept(&expVisitor);
+        guard = expVisitor.trunc(guard);
+
+        BlockPtr bodyEntry = newBlock(), join = newBlock();
+        bodyEntry->assignLabel();
+        join->assignLabel();
+
+        current->connectTo(bodyEntry);
+        blocks.push_back(bodyEntry);
+        current->connectTo(join);
+
+        InstructionPtr branch = std::make_shared<BranchInstruction>(guard, bodyEntry, join);
+        current->addInstruction(branch);
+
+        setCurrent(bodyEntry);
+        BlockPtr whileExit = statement->body->accept(this);
+
+        guard = statement->guard->accept(&expVisitor); // with new current block
+        guard = expVisitor.trunc(guard);
+
+        branch = std::make_shared<BranchInstruction>(guard, bodyEntry, join);
+        whileExit->addInstruction(branch);
+
+        whileExit->connectTo(bodyEntry);
+        whileExit->connectTo(join);
+        join->seal();
+        bodyEntry->seal();
+        blocks.push_back(join);
+        return join;
+    }
 
     Any run() {
         Any ret = program->funcs.at(0)->accept(this);

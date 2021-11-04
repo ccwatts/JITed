@@ -21,6 +21,7 @@ Any Expression::accept(ExpressionVisitor* v) {
 
 
 Lvalue::Lvalue(int line) : line(line) {};
+bool Lvalue::isDot() { return false; };
 Any Lvalue::accept(ASTVisitor* v) {
     throw std::runtime_error("Error: Visit function not implemented.");
 };
@@ -31,12 +32,14 @@ Any Lvalue::accept(ExpressionVisitor* v) {
 
 
 LvalueDot::LvalueDot(int line, ExpressionPtr left, std::string id) : Lvalue(line), left(left), id(id) {};
+bool LvalueDot::isDot() { return true; };
 Any LvalueDot::accept(ASTVisitor* v) { return v->visit(this); };
 Any LvalueDot::accept(ExpressionVisitor* v) { return v->visit(this); };
 
 
 // not an expression.
 LvalueId::LvalueId(int line, std::string id) : Lvalue(line), id(id) {};
+bool LvalueId::isDot() { return false; };
 Any LvalueId::accept(ASTVisitor* v) { return v->visit(this); };
 Any LvalueId::accept(ExpressionVisitor* v) { return v->visit(this); };
 

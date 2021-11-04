@@ -92,5 +92,6 @@ public:
 
     static std::shared_ptr<Global> get(std::string name, std::string type);
 };
+typedef std::shared_ptr<Global> GlobalPtr;
 
 }

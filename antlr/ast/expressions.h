@@ -24,6 +24,7 @@ class Lvalue {
 public:
     int line;
     Lvalue(int line);
+    virtual bool isDot();
     virtual Any accept(ASTVisitor* v);
     virtual Any accept(ExpressionVisitor* v);
 };
@@ -37,6 +38,7 @@ public:
     std::string id;
 
     LvalueDot(int line, ExpressionPtr left, std::string id);
+    bool isDot() override;
     Any accept(ASTVisitor* v) override;
     Any accept(ExpressionVisitor* v) override;
 };
@@ -49,6 +51,7 @@ public:
     std::string id;
     LvalueId(int line, std::string id);
 
+    bool isDot() override;
     Any accept(ASTVisitor* v) override;
     Any accept(ExpressionVisitor* v) override;
 };

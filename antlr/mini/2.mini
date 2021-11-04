@@ -7,5 +7,8 @@ struct A
 int x;
 
 fun changeX(int x) int {
+    while (x > 0) {
+        x = x - 1;
+    }
     return x;
 }
