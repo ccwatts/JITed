@@ -37,6 +37,7 @@ extern "C" int readInt() {
     return x;
 }
 
+#include <typeinfo>
 class ModuleCompiler {
 private:
     // static Expected<std::unique_ptr<ModuleCompiler>> _create() {
@@ -107,10 +108,6 @@ public:
             {
                 mangler("printIntEndl"),
                 JITEvaluatedSymbol(pointerToJITTargetAddress(&printIntEndl), JITSymbolFlags::Exported)
-            },
-            {
-                mangler("struct.union_t"),
-                JITEvaluatedSymbol(pointerToJITTargetAddress(&printIntEndl), JITSymbolFlags::Exported)
             }
         });
         Error e = jd.define(s);
@@ -125,7 +122,7 @@ public:
         SMDiagnostic err;
         auto m = parseIRFile(fname, err, *tsc.getContext());
         if (!m) {
-            std::cout << "<" << fname << ">";
+            std::cout << "<" << fname << "> ";
             std::cout << err.getMessage().str() << std::endl;
             return -1;
         }
@@ -164,6 +161,7 @@ public:
             std::cerr << std::endl;
             return NULL;
         } else {
+            std::cout << typeid(res->getAddress()).name() << std::endl;
             return (void*) res->getAddress();
         }
     }
@@ -228,14 +226,14 @@ int main(int argc, char** argv) {
     J->addFile("../inputs/431/struct.ll");
     J->addFile(argv[1]);
     J->jit->getExecutionSession().dump(llvm::outs());
-    // auto* fptr = (struct union_t (*)(struct union_t)) J->getSym(argv[2]);
-    // if (fptr) {
-    //     struct union_t empty = {NULL, NULL};
-    //     auto res = fptr(empty);
-    //     std::cout << res.ints << std::endl;
-    //     std::cout << res.strs << std::endl;
-    //     std::cout << res.strs[0] << std::endl;
-    // }
+    auto* fptr = (struct union_t (*)(struct union_t)) J->getSym(argv[2]);
+    if (fptr) {
+        struct union_t empty = {NULL, NULL};
+        auto res = fptr(empty);
+        std::cout << res.ints << std::endl;
+        std::cout << res.strs << std::endl;
+        std::cout << res.strs[0] << std::endl;
+    }
 
 
 
