@@ -6,7 +6,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
-#include "inputs/generic.h"
+#include "../inputs/generic.h"
 using namespace llvm;
 
 namespace lljit {
@@ -88,23 +88,23 @@ public:
         return 0;
     }
 
-    int addString(std::string input) {
-        orc::ThreadSafeContext tsc(std::make_unique<LLVMContext>());
-        SMDiagnostic err;
-        auto m = parseAssemblyString(INP, err, *tsc.getContext());
-        if (!m) {
-            std::cout << err.getMessage().str() << std::endl;
-            return -1;
-        }
+    // int addString(std::string input) {
+    //     orc::ThreadSafeContext tsc(std::make_unique<LLVMContext>());
+    //     SMDiagnostic err;
+    //     auto m = parseAssemblyString(INP, err, *tsc.getContext());
+    //     if (!m) {
+    //         std::cout << err.getMessage().str() << std::endl;
+    //         return -1;
+    //     }
         
-        orc::ThreadSafeModule tsm(std::move(m), std::move(tsc));
+    //     orc::ThreadSafeModule tsm(std::move(m), std::move(tsc));
 
-        if (auto err = this->jit->addIRModule(std::move(tsm))) {
-            errs() << err;
-            return 1;
-        }
-        return 0;
-    }
+    //     if (auto err = this->jit->addIRModule(std::move(tsm))) {
+    //         errs() << err;
+    //         return 1;
+    //     }
+    //     return 0;
+    // }
 
     void* getSym(char* name) {
         auto res = jit->lookup(name);
