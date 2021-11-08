@@ -34,13 +34,14 @@ public:
 
     antlrcpp::Any value;
     std::string type;
+    bool isStruct;
 
-    TypedValue(const std::string type, antlrcpp::Any value);
+    TypedValue(const std::string type, antlrcpp::Any value, bool isStruct=false);
 
     template <typename T>
     T get();
 
-    bool isStruct();
+    // bool isStruct();
     bool isNull();
     std::string toString();
 };

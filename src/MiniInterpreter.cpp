@@ -32,7 +32,7 @@ namespace mini {
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
 */
-TypedValue::TypedValue(const std::string type, Any value) : type(type), value(value) {};
+TypedValue::TypedValue(const std::string type, Any value, bool isStruct) : type(type), value(value), isStruct(isStruct) {};
 
 template <typename T>
 T TypedValue::get() {
@@ -40,12 +40,12 @@ T TypedValue::get() {
     return value.as<T>();
 }
 
-bool TypedValue::isStruct() {
-    return value.is<_RawValueMapPtr>();
-}
+// bool TypedValue::isStruct {
+//     return value.is<_RawValueMapPtr>();
+// }
 
 bool TypedValue::isNull() {
-    return isStruct() && value.as<_RawValueMapPtr>() == nullptr;
+    return isStruct && value.as<_RawValueMapPtr>() == nullptr;
 }
 
 std::string TypedValue::toString() {
@@ -114,7 +114,7 @@ ValueMap MiniInterpreter::bindArgs(std::vector<ast::ExpressionPtr>& args, std::v
     for (int i = 0; i < args.size(); ++i) {
         TypedValue tv = args.at(i)->accept(this);
         TypedValuePtr dec = params.at(i)->accept(this);
-        if (tv.type != dec->type && !(tv.isStruct() && dec->isStruct())) {
+        if (tv.type != dec->type && !(tv.isStruct && dec->isStruct)) {
             throw std::runtime_error("incorrect type for arg-param binding");
         }
         dec->value = tv.value;
@@ -132,7 +132,7 @@ Any MiniInterpreter::visit(ast::AssignmentStatement* statement) {
         return nullptr;
     }
     TypedValue source = statement->source->accept(this);
-    if (target->type == source.type || (target->isStruct() && source.isStruct())) {
+    if (target->type == source.type || (target->isStruct && source.isStruct)) {
         target->value = source.value;
     } else {
         // error
@@ -153,7 +153,7 @@ Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
 
     // these are done in advance since the operand types aren't constrained
     if (expression->op == ast::BinaryExpression::Operator::EQ) {
-        if (lft.isStruct() && rht.isStruct()) {
+        if (lft.isStruct && rht.isStruct) {
             return TypedValue(ast::BoolType::name(), lft.get<ValueMap*>() == rht.get<ValueMap*>());
         } else if (lft.type != rht.type) {
             return TypedValue(ast::BoolType::name(), false);
@@ -242,7 +242,7 @@ Any MiniInterpreter::visit(ast::Declaration* declaration) {
         std::cerr << "error: cannot instantiate a variable with void type\n";
         std::exit(1);
     } else {
-        return std::make_shared<TypedValue>(typeStr, static_cast<ValueMap*>(nullptr));
+        return std::make_shared<TypedValue>(typeStr, static_cast<ValueMap*>(nullptr), true);
     }
     return nullptr;
 }
@@ -255,7 +255,7 @@ Any MiniInterpreter::visit(ast::DeleteStatement* statement) {
 
 Any MiniInterpreter::visit(ast::DotExpression* expression) {
     TypedValue left = expression->left->accept(this);
-    if (!(left.isStruct())) {
+    if (!(left.isStruct)) {
         throw std::runtime_error(std::to_string(expression->line) + ": invalid struct for dot expression");
     } else if (left.isNull()) {
         throw std::runtime_error(std::to_string(expression->line) + ": null used in dot expression");
@@ -324,7 +324,7 @@ Any MiniInterpreter::visit(ast::InvocationStatement* statement) {
 
 Any MiniInterpreter::visit(ast::LvalueDot* lvalue) {
     TypedValue left = lvalue->left->accept(this);
-    if (!(left.isStruct())) {
+    if (!(left.isStruct)) {
         throw std::runtime_error(std::to_string(lvalue->line) + ": invalid lvalue for dot expression");
     } else if (left.isNull()) {
         throw std::runtime_error(std::to_string(lvalue->line) + ": null lvalue for dot expression");
