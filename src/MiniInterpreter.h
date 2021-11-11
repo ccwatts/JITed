@@ -57,6 +57,7 @@ public:
 
     int asInt();
     bool asBool();
+    int32_t asI32();
     PackedStruct* asStruct();
 
     // bool isStruct();
@@ -90,6 +91,7 @@ private:
     template <typename T>
     T get(std::string fieldName);
 public:
+    size_t totalBytes;
     uint8_t* buf;
     // vector is <field name, field type>
     // iterate and add the size of each type

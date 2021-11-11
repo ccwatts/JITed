@@ -90,6 +90,7 @@ int TypedValue::asInt() {
         return 0;
     }
 }
+
 bool TypedValue::asBool() {
     if (value.is<bool>()) {
         return value.as<bool>();
@@ -97,6 +98,22 @@ bool TypedValue::asBool() {
         return (bool) *(value.as<int32_t*>());
     } else if (value.is<BoolPtr>()) {
         return (bool) *(value.as<BoolPtr>());
+    } else {
+        return 0;
+    }
+}
+
+int32_t TypedValue::asI32() {
+    if (value.is<int32_t*>()) {
+        return *(value.as<int32_t*>());
+    } else if (value.is<bool>()) {
+        return (int32_t) value.as<bool>();
+    } else if (value.is<BoolPtr>()) {
+        return (int32_t) *(value.as<BoolPtr>());
+    } else if (value.is<int>()) {
+        return (int32_t) value.as<int>();
+    } else if (value.is<IntPtr>()) {
+        return (int32_t) *(value.as<IntPtr>());
     } else {
         return 0;
     }
@@ -145,10 +162,10 @@ std::string TypedValue::toString() {
 // std::map<std::string, TypedValue> offsets; // field name -> int offset
 // size_t size;
 // uint8_t* buf;
-PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo) : buf(NULL) {
-    const size_t ptrBytes = 8;
-    const size_t i32Bytes = 4;
-    size_t totalBytes = 0;
+PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo) : buf(NULL), totalBytes(0) {
+    const size_t ptrBytes = sizeof(intptr_t) / sizeof(int32_t);
+    const size_t i32Bytes = sizeof(int32_t);
+    // size_t totalBytes = 0;
 
     // calculate size and offsets
     for (ast::DeclarationPtr dec : fieldInfo->fields) {

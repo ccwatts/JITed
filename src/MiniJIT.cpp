@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <iostream>
 #include <regex>
+#include <cstring>
 
 using namespace llvm;
 
@@ -258,14 +259,54 @@ public:
             // int8_t* args = new int8_t[expression->arguments.size()];
             
             std::vector<mini::TypedValue> vals;
-            int totalSize = 0;
+            int totalBytes = 0;
             for (ast::ExpressionPtr e : expression->arguments) {
-                
+                mini::TypedValue tv = e->accept(this);
+                if (tv.isStruct()) {
+                    // totalSize += sizeof(intptr_t) / sizeof(int32_t);
+                    mini::PackedStruct* ps = tv.asStruct();
+                    totalBytes += ps->totalBytes;
+                } else {
+                    totalBytes += sizeof(int32_t);
+                }
+                vals.push_back(tv);
+            }
+            // std::cout << totalSize << std::endl;
+            // int32_t* args = new int32_t[totalSize]();
+            int8_t* args = new int8_t[totalBytes]();
+            int currentOffset = 0;
+            for (mini::TypedValue tv : vals) {
+                if (tv.type == ast::IntType::name() || tv.type == ast::BoolType::name()) {
+                    int32_t i32 = tv.asI32();
+                    std::memcpy(args + currentOffset, &i32, sizeof(int32_t));
+                    currentOffset += sizeof(int32_t);
+                } else {
+                    mini::PackedStruct* ps = tv.asStruct();
+                    std::memcpy(args + currentOffset, ps->buf, ps->totalBytes);
+                    currentOffset += ps->totalBytes;
+                }
             }
             
-
-            // delete[] args;
-            return nullptr;
+            // return mini::TypedValue(ast::IntType::name(), 0);
+            std::string returnType = funcs.at(expression->name)->retType->toMiniString();
+            antlrcpp::Any retVal;
+            if (returnType == ast::IntType::name()) {
+                auto fptr = (int32_t (*)(int8_t*)) mc->getSym(expression->name);
+                int rawRetVal = fptr(args);
+                retVal = mini::TypedValue(returnType, rawRetVal);
+            } else if (returnType == ast::BoolType::name()) {
+                auto fptr = (int32_t (*)(int8_t*)) mc->getSym(expression->name);
+                bool rawRetVal = fptr(args);
+                retVal = mini::TypedValue(returnType, rawRetVal);
+            } else if (returnType == ast::VoidType::name()) {
+                auto fptr = (void (*)(int8_t*)) mc->getSym(expression->name);
+                fptr(args);
+                retVal = nullptr;
+            } else {
+                throw std::runtime_error("struct returns unimplemented");
+            }
+            delete[] args;
+            return retVal;
         } else {
             antlrcpp::Any rv = MiniInterpreter::visit(expression);
             if (true) {
@@ -368,6 +409,7 @@ public:
                 } else {
                     // bitcast it to a struct pointer
                     oss << " = bitcast i32* %" << param->name << "PTR to " << param->type->toString() << "\n";
+                    // oss << " = bitcast i32* %" << param->name << "PTR to " << "i32*" << "\n";
                     i += ptrStep;
                 }
             }
@@ -391,6 +433,7 @@ public:
         if (funcs.count(fname)) {
             ast::FunctionPtr f = funcs.at(fname);
             std::string moduleStr = moduleString(fname);
+            std::cout << moduleStr << std::endl;
             mc->addString(moduleStr);
         } else {
             throw std::runtime_error("compilation requested for nonexistent function");
