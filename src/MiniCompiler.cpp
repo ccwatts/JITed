@@ -73,7 +73,7 @@ ExpressionToValueVisitor::ExpressionToValueVisitor(BlockPtr current, std::map<st
 
 ValuePtr ExpressionToValueVisitor::zext(ValuePtr v) {
     if (v->typeStr() == "i1") {
-        RegisterPtr zexted_r = std::make_shared<Register>("i32");
+        RegisterPtr zexted_r = Register::get("i32");
         InstructionPtr zext = std::make_shared<CastInstruction>(CastInstruction::Operator::ZEXT, zexted_r, v);
         current->addInstruction(zext);
         return zexted_r;
@@ -84,7 +84,7 @@ ValuePtr ExpressionToValueVisitor::zext(ValuePtr v) {
 
 ValuePtr ExpressionToValueVisitor::trunc(ValuePtr v) {
     if (v->typeStr() == "i32") {
-        RegisterPtr trunc_r = std::make_shared<Register>("i32");
+        RegisterPtr trunc_r = Register::get("i32");
         InstructionPtr trunc = std::make_shared<CastInstruction>(CastInstruction::Operator::TRUNC, trunc_r, v);
         current->addInstruction(trunc);
         return trunc_r;
@@ -126,7 +126,7 @@ Any ExpressionToValueVisitor::visit(ast::BinaryExpression* expression) {
         case ast::BinaryExpression::Operator::MINUS:
         case ast::BinaryExpression::Operator::AND:
         case ast::BinaryExpression::Operator::OR:
-            res = std::make_shared<Register>("i32");
+            res = Register::get("i32");
             break;
 
         case ast::BinaryExpression::Operator::LT:
@@ -135,7 +135,7 @@ Any ExpressionToValueVisitor::visit(ast::BinaryExpression* expression) {
         case ast::BinaryExpression::Operator::GE:
         case ast::BinaryExpression::Operator::EQ:
         case ast::BinaryExpression::Operator::NE:
-            res = std::make_shared<Register>("i1");
+            res = Register::get("i1");
             break;
     }
 
@@ -331,7 +331,9 @@ void StatementToBlockVisitor::processTypedec(ast::TypeDeclarationPtr typeDec) {
     StructInfoTable structMap;
     int i = 0;
     std::ostringstream oss;
-    // oss << "%struct." << typeDec->name << " = type {";
+    #ifdef PRINTMETA
+    oss << "%struct." << typeDec->name << " = type {";
+    #endif
     for (ast::DeclarationPtr field : typeDec->fields) {
         structMap.insert({field->name, {field->type->toString(), i++}});
         oss << field->type->toString() << ", ";
@@ -339,7 +341,9 @@ void StatementToBlockVisitor::processTypedec(ast::TypeDeclarationPtr typeDec) {
 
     std::string text = oss.str();
     // TODO CHANGE THIS.
-    // std::cout << text.substr(0, text.length() - 2) + "}\n";
+    #ifdef PRINTMETA
+    std::cout << text.substr(0, text.length() - 2) + "}\n";
+    #endif
     structTable.insert({typeDec->name, structMap});
 }
 
@@ -361,11 +365,13 @@ void StatementToBlockVisitor::processFunctionHeader(ast::Function* function) {
     for (ast::DeclarationPtr param : function->params) {
         header += param->type->toString() + " %" + param->name + ", ";
     }
+    #ifdef PRINTMETA
     if (function->params.size() > 0) {
         this->current->header = header.substr(0, header.length() - 2) + ")\n{\n";
     } else {
         this->current->header = header + ")\n{\n";
     }
+    #endif
 }
 
 void StatementToBlockVisitor::processRetval() {
