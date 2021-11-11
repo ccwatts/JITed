@@ -259,47 +259,48 @@ public:
             // int8_t* args = new int8_t[expression->arguments.size()];
             
             std::vector<mini::TypedValue> vals;
-            int totalBytes = 0;
+            int totalSize = 0;
             for (ast::ExpressionPtr e : expression->arguments) {
                 mini::TypedValue tv = e->accept(this);
                 if (tv.isStruct()) {
                     // totalSize += sizeof(intptr_t) / sizeof(int32_t);
-                    mini::PackedStruct* ps = tv.asStruct();
-                    totalBytes += ps->totalBytes;
+                    // mini::PackedStruct* ps = tv.asStruct();
+                    totalSize += sizeof(intptr_t) / sizeof(int32_t);
                 } else {
-                    totalBytes += sizeof(int32_t);
+                    totalSize += sizeof(int32_t);
                 }
                 vals.push_back(tv);
             }
             // std::cout << totalSize << std::endl;
-            // int32_t* args = new int32_t[totalSize]();
-            int8_t* args = new int8_t[totalBytes]();
+            int32_t* args = new int32_t[totalSize]();
+            // int8_t* args = new int8_t[totalBytes]();
             int currentOffset = 0;
             for (mini::TypedValue tv : vals) {
                 if (tv.type == ast::IntType::name() || tv.type == ast::BoolType::name()) {
                     int32_t i32 = tv.asI32();
-                    std::memcpy(args + currentOffset, &i32, sizeof(int32_t));
-                    currentOffset += sizeof(int32_t);
+                    // std::memcpy(args + currentOffset, &i32, sizeof(int32_t));
+                    args[currentOffset] = i32;
+                    currentOffset += 1;
                 } else {
                     mini::PackedStruct* ps = tv.asStruct();
-                    std::memcpy(args + currentOffset, ps->buf, ps->totalBytes);
-                    currentOffset += ps->totalBytes;
+                    // std::memcpy(args + currentOffset, ps->buf, ps->totalBytes);
+                    *((uint8_t**) args + currentOffset) = ps->buf;
+                    currentOffset += sizeof(intptr_t) / sizeof(int32_t);
                 }
             }
             
-            // return mini::TypedValue(ast::IntType::name(), 0);
             std::string returnType = funcs.at(expression->name)->retType->toMiniString();
             antlrcpp::Any retVal;
             if (returnType == ast::IntType::name()) {
-                auto fptr = (int32_t (*)(int8_t*)) mc->getSym(expression->name);
+                auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name);
                 int rawRetVal = fptr(args);
                 retVal = mini::TypedValue(returnType, rawRetVal);
             } else if (returnType == ast::BoolType::name()) {
-                auto fptr = (int32_t (*)(int8_t*)) mc->getSym(expression->name);
+                auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name);
                 bool rawRetVal = fptr(args);
                 retVal = mini::TypedValue(returnType, rawRetVal);
             } else if (returnType == ast::VoidType::name()) {
-                auto fptr = (void (*)(int8_t*)) mc->getSym(expression->name);
+                auto fptr = (void (*)(int32_t*)) mc->getSym(expression->name);
                 fptr(args);
                 retVal = nullptr;
             } else {
@@ -401,14 +402,15 @@ public:
             oss << "define " + function->retType->toString() + " @" + function->name + "(i32* " + argsName + ") {\nARGPARSE:\n";
             for (ast::DeclarationPtr param : function->params) {
                 oss << "%" << param->name << "PTR = getelementptr i32, i32* " << argsName << ", i64 " << i << "\n";
-                oss << "%" << param->name;
                 if (param->type->toString() == "i32") {
                     // dereference the i32
-                    oss << " = load i32, i32* %" << param->name << "PTR\n";
+                    oss << "%" << param->name << " = load i32, i32* %" << param->name << "PTR\n";
                     i += 1;
                 } else {
                     // bitcast it to a struct pointer
-                    oss << " = bitcast i32* %" << param->name << "PTR to " << param->type->toString() << "\n";
+                    oss << "%" << param->name << "PTR2 = bitcast i32* %" << param->name << "PTR to " << param->type->toString() << "*\n"
+                        << "%" << param->name << " = load " << param->type->toString() << ", " << param->type->toString() << "* %"
+                        << param->name << "PTR2\n";
                     // oss << " = bitcast i32* %" << param->name << "PTR to " << "i32*" << "\n";
                     i += ptrStep;
                 }
