@@ -162,7 +162,9 @@ std::string TypedValue::toString() {
 // std::map<std::string, TypedValue> offsets; // field name -> int offset
 // size_t size;
 // uint8_t* buf;
-PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo) : buf(NULL), totalBytes(0) {
+std::map<uint8_t*, PackedStruct*> PackedStruct::lookupTable;
+
+PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf) : buf(existingBuf), totalBytes(0) {
     const size_t ptrBytes = sizeof(intptr_t) / sizeof(int32_t);
     const size_t i32Bytes = sizeof(int32_t);
     // size_t totalBytes = 0;
@@ -180,10 +182,12 @@ PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo) : buf(NULL), total
         }
     }
 
-    if (totalBytes == 0) {
-        throw std::runtime_error("tried to make struct with 0 size");
-    } else {
-        buf = new uint8_t[totalBytes](); // () gives zeroed array
+    if (!buf) {
+        if (totalBytes == 0) {
+            throw std::runtime_error("tried to make struct with 0 size");
+        } else {
+            buf = new uint8_t[totalBytes](); // () gives zeroed array
+        }
     }
 
     // create typed values
@@ -203,10 +207,12 @@ PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo) : buf(NULL), total
             // this one's different
         }
     }
+    lookupTable[buf] = this;
 };
 
 PackedStruct::~PackedStruct() {
     // this probably needs more, namely accessors.
+    lookupTable.erase(buf);
     if (buf) {
         delete[] buf;
     }

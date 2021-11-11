@@ -41,81 +41,70 @@ extern "C" int readInt() {
     return x;
 }
 
-class StructAssembler {
-private:
-    LLVMContext ctx;
-    PointerType* pointerType;
-    IntegerType* i1Type;
-    IntegerType* i8Type;
-    IntegerType* i16Type;
-    IntegerType* i32Type;
-    IntegerType* i64Type;
-public:
-    enum Ty {
-        PTR,
-        I1,
-        I8,
-        I16,
-        I32,
-        I64
-    };
+// class StructAssembler {
+// private:
+//     LLVMContext ctx;
+//     PointerType* pointerType;
+//     IntegerType* i1Type;
+//     IntegerType* i8Type;
+//     IntegerType* i16Type;
+//     IntegerType* i32Type;
+//     IntegerType* i64Type;
+// public:
+//     enum Ty {
+//         PTR,
+//         I1,
+//         I8,
+//         I16,
+//         I32,
+//         I64
+//     };
 
-    StructAssembler() :
-        pointerType(Type::getInt8PtrTy(ctx)),
-        i1Type(Type::getInt1Ty(ctx)),
-        i8Type(Type::getInt8Ty(ctx)),
-        i16Type(Type::getInt16Ty(ctx)),
-        i32Type(Type::getInt32Ty(ctx)),
-        i64Type(Type::getInt64Ty(ctx)) {};
+//     StructAssembler() :
+//         pointerType(Type::getInt8PtrTy(ctx)),
+//         i1Type(Type::getInt1Ty(ctx)),
+//         i8Type(Type::getInt8Ty(ctx)),
+//         i16Type(Type::getInt16Ty(ctx)),
+//         i32Type(Type::getInt32Ty(ctx)),
+//         i64Type(Type::getInt64Ty(ctx)) {};
 
-    StructType* assemble(std::vector<Ty> types) {
-        // return StructType::create(ArrayRef<Type*>(types));
-        std::vector<Type*> translated;
-        for (auto ty : types) {
-            switch (ty) {
-                case PTR:
-                    translated.push_back(pointerType);
-                    break;
-                case I1:
-                    translated.push_back(i1Type);
-                    break;
-                case I8:
-                    translated.push_back(i8Type);
-                    break;
-                case I16:
-                    translated.push_back(i16Type);
-                    break;
-                case I32:
-                    translated.push_back(i32Type);
-                    break;
-                case I64:
-                    translated.push_back(i64Type);
-                    break;
-                default:
-                    throw std::runtime_error("unexpected enum Ty in structassembler");
-                    break;
-            }
-        }
-        ArrayRef<Type*> ar(translated);
-        return StructType::create(ar);
-    }
-};
+//     StructType* assemble(std::vector<Ty> types) {
+//         // return StructType::create(ArrayRef<Type*>(types));
+//         std::vector<Type*> translated;
+//         for (auto ty : types) {
+//             switch (ty) {
+//                 case PTR:
+//                     translated.push_back(pointerType);
+//                     break;
+//                 case I1:
+//                     translated.push_back(i1Type);
+//                     break;
+//                 case I8:
+//                     translated.push_back(i8Type);
+//                     break;
+//                 case I16:
+//                     translated.push_back(i16Type);
+//                     break;
+//                 case I32:
+//                     translated.push_back(i32Type);
+//                     break;
+//                 case I64:
+//                     translated.push_back(i64Type);
+//                     break;
+//                 default:
+//                     throw std::runtime_error("unexpected enum Ty in structassembler");
+//                     break;
+//             }
+//         }
+//         ArrayRef<Type*> ar(translated);
+//         return StructType::create(ar);
+//     }
+// };
 
 #include <typeinfo>
 class ModuleCompiler {
 private:
-    // static Expected<std::unique_ptr<ModuleCompiler>> _create() {
-    //     auto jit = orc::LLJITBuilder().create();
-    //     orc::MangleAndInterner mangler((*jit)->getExecutionSession(), (*jit)->getDataLayout());
-    
-    //     if (!jit)
-    //         return jit.takeError();
-        
-    //     (*jit)->getExecutionSession().setErrorReporter(dontLogErrors);
-
-    //     return std::make_unique<ModuleCompiler>(std::move(*jit), mangler);
-    // }
-    StructAssembler sa;
+    // StructAssembler sa;
 public:
     static void dontLogErrors(Error Err) {
         // logAllUnhandledErrors(std::move(Err), errs(), "JIT session error (...): ");
@@ -233,10 +222,10 @@ public:
         }
     }
 
-    const StructLayout* layoutOf(std::vector<StructAssembler::Ty> types) {
-        StructType* st = sa.assemble(types);
-        return jit->getDataLayout().getStructLayout(st);
-    }
+    // const StructLayout* layoutOf(std::vector<StructAssembler::Ty> types) {
+    //     StructType* st = sa.assemble(types);
+    //     return jit->getDataLayout().getStructLayout(st);
+    // }
 };
 
 class JIT : public mini::MiniInterpreter {
@@ -304,7 +293,20 @@ public:
                 fptr(args);
                 retVal = nullptr;
             } else {
-                throw std::runtime_error("struct returns unimplemented");
+
+                // TODO: probably need a reverse lookup for this
+                // with a buffer ptr, look for a packedstruct with that as its entry
+                // alternatively, the TypedValues shouldn't take ownership of what they point to
+                // can probably just make a new packedstruct and have a constructor that accepts the old buffer
+                // perhaps set a flag NOT to delete if we're copying off an existing buffer; it'll eventually get removed, anyways
+
+                // we still need to find the original, i think. otherwise, can't differentiate between structs made inside the function
+                // and structs that already existed elsewhere.
+                // std::cout << returnType << std::endl;
+                // throw std::runtime_error("struct returns unimplemented");
+                auto fptr = (uint8_t* (*)(int32_t*)) mc->getSym(expression->name);
+                uint8_t* rawRetVal = fptr(args);
+                retVal = mini::TypedValue(returnType, reverseLookup(rawRetVal, returnType));
             }
             delete[] args;
             return retVal;
@@ -314,6 +316,19 @@ public:
                 compileFunction(expression->name);
             }
             return rv;
+        }
+    }
+
+    mini::PackedStruct* reverseLookup(uint8_t* buf, std::string structName) {
+        if (mini::PackedStruct::lookupTable.count(buf)) {
+            return mini::PackedStruct::lookupTable.at(buf);
+        } else {
+            if (structs.count(structName)) {
+                return new mini::PackedStruct(structs.at(structName), buf);
+            } else {
+                throw std::runtime_error("struct name lookup failed in reverseLookup");
+            }
+            // return new PackedStruct();
         }
     }
 
@@ -435,7 +450,7 @@ public:
         if (funcs.count(fname)) {
             ast::FunctionPtr f = funcs.at(fname);
             std::string moduleStr = moduleString(fname);
-            std::cout << moduleStr << std::endl;
+            // std::cout << moduleStr << std::endl;
             mc->addString(moduleStr);
         } else {
             throw std::runtime_error("compilation requested for nonexistent function");
@@ -452,43 +467,6 @@ int main(int argc, char** argv) {
     InitializeAllTargets();
     InitializeAllTargetMCs();
     InitializeAllAsmPrinters();
-
-    // auto J = std::move(jited::ModuleCompiler::create());
-    // LLVMContext lc;
-    // IntegerType* intType = Type::getInt32Ty(lc);
-    // PointerType* pType = Type::getInt8PtrTy(lc);
-    // StructType* sType = StructType::get(std::vector<Type*>{intType, pType});
-
-    // jited::StructAssembler sa;
-    // StructType* sType = sa.assemble({jited::StructAssembler::Ty::I32, jited::StructAssembler::Ty::PTR});
-    // const StructLayout* sLayout = J->getLayout(sType);
-    // const StructLayout* sLayout = J->layoutOf({jited::StructAssembler::Ty::I32, jited::StructAssembler::Ty::PTR});
-    // J->addFile("../inputs/431/glob.ll");
-    // J->addFile(argv[1]);
-
-    // // std::cout << sLayout->getElementOffset(0) << std::endl;
-    // // std::cout << sLayout->getElementOffset(1) << std::endl;
-    // // std::cout << sLayout->hasPadding() << std::endl;
-    // // std::cout << sLayout->getSizeInBytes() << std::endl;
-    // // std::cout << sLayout->getAlignment().value() << std::endl;
-    // // std::cout << "exiting.\n";
-    // // auto sl = J->getLayout();
-    // // J->jit->getExecutionSession().dump(llvm::outs());
-    // auto* fptr = (struct union_t (*)(struct union_t)) J->getSym(argv[2]);
-    // if (fptr) {
-    //     struct union_t empty = {NULL, NULL};
-    //     auto res = fptr(empty);
-    //     std::cout << res.ints << std::endl;
-    //     std::cout << res.strs << std::endl;
-    //     std::cout << res.strs[0] << std::endl;
-    // }
-
-
-
-
-
-
-
 
     if (argc == 1) {
         return 0;

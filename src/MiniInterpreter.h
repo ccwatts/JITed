@@ -91,12 +91,14 @@ private:
     template <typename T>
     T get(std::string fieldName);
 public:
+    static std::map<uint8_t*, PackedStruct*> lookupTable;
+
     size_t totalBytes;
     uint8_t* buf;
     // vector is <field name, field type>
     // iterate and add the size of each type
     // i1, i8, i32, structs
-    PackedStruct(ast::TypeDeclarationPtr fieldInfo);
+    PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf=NULL);
     ~PackedStruct();
 
     bool has(std::string fieldName);

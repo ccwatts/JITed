@@ -50,7 +50,7 @@ Any VoidType::accept(ASTVisitor* v) { return v->visit(this); };
 
 StructType::StructType(int line, std::string structName) : line(line), structName(structName) {};
 std::string StructType::name() { return "%struct." + structName; }
-std::string StructType::toMiniString() { return name(); }
+std::string StructType::toMiniString() { return structName; }
 std::string StructType::toString() {
     return "%struct." + structName + "*";
 }
