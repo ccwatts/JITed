@@ -5,8 +5,8 @@ LDLIBS=-lantlr4-runtime -L/usr/lib/llvm-10/lib -lLLVM-10 -lLLVM
 
 all: compiler interpreter jit
 
-jit: any.o MiniJIT.o MiniInterpreter.o MiniCompiler.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o
-	$(CC) -o jit MiniJIT.o MiniInterpreter.o MiniCompiler.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS)
+jit: any.o MainJIT.o MiniJIT.o MiniInterpreter.o MiniCompiler.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o
+	$(CC) -o jit MainJIT.o  MiniJIT.o MiniInterpreter.o MiniCompiler.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS)
 
 # CLEAN THIS UP, HOLY HELL.
 compiler: any.o MainCompiler.o MiniCompiler.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o tl-instructions.o tl-block.o tl-values.o  ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o
@@ -16,8 +16,8 @@ interpreter: any.o MainInterpreter.o MiniInterpreter.o MiniFrontend.o MiniToAstV
 	$(CC) -o interpreter MainInterpreter.o MiniInterpreter.o MiniFrontend.o MiniToAstVisitors.o MiniParser.o MiniLexer.o ast-expressions.o ast-program.o ast-statements.o ast-types.o ast-visitors.o $(LDLIBS)
 
 # the big one
-MiniJIT.o: MiniJIT.cpp
-	$(CC) -o MiniJIT.o MiniJIT.cpp $(CFLAGS)
+MainJIT.o: MainJIT.cpp
+	$(CC) -o MainJIT.o MainJIT.cpp $(CFLAGS)
 
 # files that contain the main functions
 MainCompiler.o: MainCompiler.cpp
@@ -27,6 +27,9 @@ MainInterpreter.o: MainInterpreter.cpp
 	$(CC) -o MainInterpreter.o MainInterpreter.cpp $(CFLAGS)
 
 # major component files
+MiniJIT.o: MiniJIT.cpp MiniJIT.h
+	$(CC) -o MiniJIT.o MiniJIT.cpp $(CFLAGS)
+
 MiniCompiler.o: MiniCompiler.cpp MiniCompiler.h
 	$(CC) -o MiniCompiler.o MiniCompiler.cpp $(CFLAGS)
 
