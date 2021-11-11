@@ -32,35 +32,234 @@ namespace mini {
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
 */
-TypedValue::TypedValue(const std::string type, Any value) : type(type), value(value) {};
+TypedValue::TypedValue(const std::string type, Any value, bool initialized) : type(type), value(value), initialized(initialized) {};
 
 template <typename T>
-T TypedValue::get() {
+T TypedValue::as() {
     // UNSAFE
     return value.as<T>();
 }
 
+// welcome to dubai
+void TypedValue::setValue(antlrcpp::Any val, PackedStruct* parentStruct, std::string lastField) {
+    // parent struct is unused for int and bool
+    // only needed to perform linkage in the case of member structs
+    if (val.is<int>()) { // int
+        if (value.is<int32_t*>()) {
+            *(value.as<int32_t*>()) = (int32_t) val.as<int>();
+        } else if (value.is<IntPtr>()) {
+            *(value.as<IntPtr>()) = val.as<int>();
+        } else {
+            value = val;
+        }
+
+    } else if (val.is<bool>()) { // bool
+        if (value.is<int32_t*>()) {
+            *(value.as<int32_t*>()) = (int32_t) val.as<bool>();
+        } else if (value.is<BoolPtr>()) {
+            *(value.as<BoolPtr>()) = val.as<bool>();
+        } else {
+            value = val;
+        }
+
+    } else if (val.is<PackedStruct*>()) { // struct
+        if (parentStruct) {
+            // TypedValuePtr parent = parentStruct->getStruct();
+            // set parent's accessor to point to val
+            // set parent's struct data to point to val's struct data
+            // set value to val
+            parentStruct->setMember(lastField, val.as<PackedStruct*>());
+            value = val;
+            // throw std::runtime_error("unimplemented");
+        } else {
+            value = val;
+        }
+    }
+    initialized = true;
+    return;
+}
+
+int TypedValue::asInt() {
+    if (value.is<int>()) {
+        return value.as<int>();
+    } else if (value.is<int32_t*>()) {
+        return (int) *(value.as<int32_t*>());
+    } else if (value.is<IntPtr>()) {
+        return (int) *(value.as<IntPtr>());
+    } else {
+        return 0;
+    }
+}
+
+bool TypedValue::asBool() {
+    if (value.is<bool>()) {
+        return value.as<bool>();
+    } else if (value.is<int32_t*>()) {
+        return (bool) *(value.as<int32_t*>());
+    } else if (value.is<BoolPtr>()) {
+        return (bool) *(value.as<BoolPtr>());
+    } else {
+        return 0;
+    }
+}
+
+int32_t TypedValue::asI32() {
+    if (value.is<int32_t*>()) {
+        return *(value.as<int32_t*>());
+    } else if (value.is<bool>()) {
+        return (int32_t) value.as<bool>();
+    } else if (value.is<BoolPtr>()) {
+        return (int32_t) *(value.as<BoolPtr>());
+    } else if (value.is<int>()) {
+        return (int32_t) value.as<int>();
+    } else if (value.is<IntPtr>()) {
+        return (int32_t) *(value.as<IntPtr>());
+    } else {
+        return 0;
+    }
+}
+
+PackedStruct* TypedValue::asStruct() {
+    return value.as<PackedStruct*>();
+}
+
 bool TypedValue::isStruct() {
-    return value.is<_RawValueMapPtr>();
+    return value.is<PackedStruct*>();
 }
 
 bool TypedValue::isNull() {
-    return isStruct() && value.as<_RawValueMapPtr>() == nullptr;
+    // THIS WILL NEED TO CHANGE TODO
+    // return isStruct && value.as<_RawValueMapPtr>() == nullptr;
+    return value.is<PackedStruct*>() && value.as<PackedStruct*>() == NULL;
 }
 
 std::string TypedValue::toString() {
     if (type == ast::IntType::name()) {
-        return std::to_string(value.as<int>());
+        return std::to_string(asInt());
     } else if (type == ast::BoolType::name()) {
-        return (value.as<bool>()) ? "true" : "false";
+        return (asBool()) ? "true" : "false";
     } else if (type == ast::VoidType::name()) {
         return "void"; // should not be returned from anything...
     } else if (isNull()) {
         return "null";
     } else {
         std::ostringstream oss;
-        oss << value.as<_RawValueMapPtr>();
+        oss << value.as<PackedStruct*>();
         return oss.str();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+// 
+// std::map<std::string, TypedValue> offsets; // field name -> int offset
+// size_t size;
+// uint8_t* buf;
+std::map<uint8_t*, PackedStruct*> PackedStruct::lookupTable;
+
+PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf) : buf(existingBuf), totalBytes(0) {
+    const size_t ptrBytes = sizeof(intptr_t) / sizeof(int32_t);
+    const size_t i32Bytes = sizeof(int32_t);
+    // size_t totalBytes = 0;
+
+    // calculate size and offsets
+    for (ast::DeclarationPtr dec : fieldInfo->fields) {
+        types[dec->name] = dec->type->toMiniString();
+        offsets[dec->name] = totalBytes;
+        if (dec->type->toMiniString() == "int" || dec->type->toMiniString() == "bool") {
+            totalBytes += i32Bytes;
+        } else if (dec->type->toString() == "void") {
+            throw std::runtime_error("void term in struct");
+        } else {
+            totalBytes += ptrBytes;
+        }
+    }
+
+    if (!buf) {
+        if (totalBytes == 0) {
+            throw std::runtime_error("tried to make struct with 0 size");
+        } else {
+            buf = new uint8_t[totalBytes](); // () gives zeroed array
+        }
+    }
+
+    // create typed values
+    for (auto p : offsets) {
+        std::string name = p.first;
+        int offset = p.second;
+        std::string type = types.at(name);
+        if (type == "int") {
+            accessors[name] = std::make_shared<TypedValue>(ast::IntType::name(), (int32_t*) (buf + offset));
+        } else if (type == "bool") {
+            accessors[name] = std::make_shared<TypedValue>(ast::BoolType::name(), (int32_t*) (buf + offset));
+        } else {
+            accessors[name] = std::make_shared<TypedValue>(type, (PackedStruct*) NULL);
+            // accessor only used by interpreter
+            // the jit will access the real thing in a diff way
+            // struct
+            // this one's different
+        }
+    }
+    lookupTable[buf] = this;
+};
+
+PackedStruct::~PackedStruct() {
+    // this probably needs more, namely accessors.
+    lookupTable.erase(buf);
+    if (buf) {
+        delete[] buf;
+    }
+};
+
+bool PackedStruct::has(std::string fieldName) {
+    return offsets.count(fieldName);
+}
+
+TypedValuePtr PackedStruct::at(std::string fieldName) {
+    if (has(fieldName)) {
+        return accessors.at(fieldName);
+    } else {
+        return nullptr;
+    }
+}
+
+template <typename T>
+T PackedStruct::get(std::string fieldName) {
+    if (has(fieldName)) {
+        int offset = offsets.at(fieldName);
+        uint8_t* adjusted = buf + offset;
+        return *((T*) adjusted);
+    } else {
+        throw std::runtime_error("invalid fieldname in getI32");
+    }
+}
+
+int32_t PackedStruct::getInt(std::string fieldName) {
+    return get<int32_t>(fieldName);
+}
+
+uint8_t* PackedStruct::getPtr(std::string fieldName) {
+    return get<uint8_t*>(fieldName);
+}
+
+void PackedStruct::setMember(std::string fieldName, PackedStruct* member) {
+    if (has(fieldName)) {
+        accessors[fieldName]->setValue(member);
+        if (member) {
+            uint8_t* atField = buf + offsets.at(fieldName);
+            // buf[offsets.at(fieldName)] = member->buf;
+            *((uintptr_t*) atField) = (uintptr_t) member->buf;
+            // std::cout << "member: <" << (uintptr_t*) atField << ">" << std::endl;
+        }
+    } else {
+        return;
     }
 }
 
@@ -76,19 +275,25 @@ std::string TypedValue::toString() {
 
 
 
+MiniInterpreter::MiniInterpreter(ast::ProgramPtr program) : program(program), parentStruct(NULL) {};
+MiniInterpreter::~MiniInterpreter() {};
 
-
-
+void MiniInterpreter::resetStruct() {
+    lastField = "";
+    parentStruct = NULL;
+}
 
 bool MiniInterpreter::isBool(std::string eType) {
     return eType == typeid(ast::TrueExpression).name() || eType == typeid(ast::FalseExpression).name();
 }
 
 bool MiniInterpreter::getBoolState(TypedValue& tv) {
-    if (tv.type == ast::IntType::name()) {
-        return tv.get<int>();
+    if (!tv.initialized) {
+        throw std::runtime_error("use of uninitialized value");
+    } else if (tv.type == ast::IntType::name()) {
+        return tv.asInt();
     } else if (tv.type == ast::BoolType::name()) {
-        return tv.get<bool>();
+        return tv.asBool();
     } else {
         throw std::runtime_error("error: cannot extract bool state of non-int/bool");
     }
@@ -106,6 +311,7 @@ TypedValuePtr MiniInterpreter::lookup(std::string name) {
     return nullptr;
 }
 
+// TODO WATCH THIS, THIS MAY NEED TO CHANGE + SCOPES IN GENERAL MAY NEED TO...
 ValueMap MiniInterpreter::bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params) {
     ValueMap newScope;
     if (params.size() != args.size()) {
@@ -117,26 +323,27 @@ ValueMap MiniInterpreter::bindArgs(std::vector<ast::ExpressionPtr>& args, std::v
         if (tv.type != dec->type && !(tv.isStruct() && dec->isStruct())) {
             throw std::runtime_error("incorrect type for arg-param binding");
         }
-        dec->value = tv.value;
+        // dec->value = tv.value;
+        dec->setValue(tv.value);
         // newScope.insert({params.at(i)->name, dec});
         newScope[params.at(i)->name] = dec;
     }
     return newScope;
 }
-MiniInterpreter::MiniInterpreter(ast::ProgramPtr program) : program(program) {};
 
 Any MiniInterpreter::visit(ast::AssignmentStatement* statement) {
-    TypedValuePtr target = statement->target->accept(this);
-    if (!target) {
-        // error ...?
-        return nullptr;
-    }
     TypedValue source = statement->source->accept(this);
+
+    resetStruct();
+    Any targetRes = statement->target->accept(this);
+    TypedValue* target = (targetRes.is<TypedValuePtr>()) ? targetRes.as<TypedValuePtr>().get() : targetRes.as<TypedValue*>();
     if (target->type == source.type || (target->isStruct() && source.isStruct())) {
-        target->value = source.value;
+        target->setValue(source.value, parentStruct, lastField);
     } else {
         // error
+        throw std::runtime_error("error in assignment");
     }
+    resetStruct();
     return nullptr;
 }
 
@@ -144,6 +351,9 @@ Any MiniInterpreter::visit(ast::AssignmentStatement* statement) {
 Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
     // holy shit this is a mess...
     TypedValue lft = expression->left->accept(this), rht = expression->right->accept(this);
+    if (!lft.initialized || !rht.initialized) {
+        throw std::runtime_error("use of uninitialized value");
+    }
     /*
     TIMES,DIVIDE,PLUS,MINUS,
     LT,LE,GT,GE,
@@ -154,25 +364,33 @@ Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
     // these are done in advance since the operand types aren't constrained
     if (expression->op == ast::BinaryExpression::Operator::EQ) {
         if (lft.isStruct() && rht.isStruct()) {
-            return TypedValue(ast::BoolType::name(), lft.get<ValueMap*>() == rht.get<ValueMap*>());
+            return TypedValue(ast::BoolType::name(), lft.as<PackedStruct*>() == rht.as<PackedStruct*>());
         } else if (lft.type != rht.type) {
             return TypedValue(ast::BoolType::name(), false);
         } else if (lft.type == ast::IntType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.get<int>() == rht.get<int>());
+            return TypedValue(ast::BoolType::name(), lft.asInt() == rht.asInt());
         } else if (lft.type == ast::BoolType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.get<bool>() == rht.get<bool>());
+            return TypedValue(ast::BoolType::name(), lft.asBool() == rht.asBool());
         } else {
             return TypedValue(ast::BoolType::name(), false);
             // throw std::runtime_error("struct comparison unimplemented");
         }
     } else if (expression->op == ast::BinaryExpression::Operator::NE) {
-        if (lft.type != rht.type) {
+        if (lft.isStruct() && rht.isStruct()) {
+            return TypedValue(ast::BoolType::name(), lft.as<PackedStruct*>() != rht.as<PackedStruct*>());
+        } else if (lft.type != rht.type) {
             return TypedValue(ast::BoolType::name(), true);
+        } else if (lft.type == ast::IntType::name()) {
+            return TypedValue(ast::BoolType::name(), lft.asInt() != rht.asInt());
+        } else if (lft.type == ast::BoolType::name()) {
+            return TypedValue(ast::BoolType::name(), lft.asBool() != rht.asBool());
+        } else {
+            return TypedValue(ast::BoolType::name(), true); // ??
         }
     }
 
     if (lft.type == ast::IntType::name() && rht.type == ast::IntType::name()) {
-        int lftVal = lft.get<int>(), rhtVal = rht.get<int>();
+        int lftVal = lft.asInt(), rhtVal = rht.asInt();
         switch (expression->op) {
             case ast::BinaryExpression::Operator::TIMES:
                 return TypedValue(ast::IntType::name(), lftVal * rhtVal);
@@ -194,7 +412,7 @@ Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
                 break;
         }
     } else if (lft.type == ast::BoolType::name() && rht.type == ast::BoolType::name()) {
-        bool lftVal = lft.get<bool>(), rhtVal = rht.get<bool>();
+        bool lftVal = lft.asBool(), rhtVal = rht.asBool();
         switch (expression->op) {
             case ast::BinaryExpression::Operator::AND:
                 return TypedValue(ast::BoolType::name(), lftVal && rhtVal);
@@ -235,21 +453,21 @@ Any MiniInterpreter::visit(ast::ConditionalStatement* statement) {
 Any MiniInterpreter::visit(ast::Declaration* declaration) {
     std::string typeStr = declaration->type->accept(this);
     if (typeStr == ast::IntType::name()) {
-        return std::make_shared<TypedValue>(typeStr, 0);
+        return std::make_shared<TypedValue>(typeStr, 0, false);
     } else if (typeStr == ast::BoolType::name()) {
-        return std::make_shared<TypedValue>(typeStr, false);
+        return std::make_shared<TypedValue>(typeStr, false, false);
     } else if (typeStr == ast::VoidType::name()) {
         std::cerr << "error: cannot instantiate a variable with void type\n";
         std::exit(1);
     } else {
-        return std::make_shared<TypedValue>(typeStr, static_cast<ValueMap*>(nullptr));
+        return std::make_shared<TypedValue>(typeStr, (PackedStruct*) nullptr, false);
     }
     return nullptr;
 }
 
 Any MiniInterpreter::visit(ast::DeleteStatement* statement) {
     TypedValue toDelete = statement->expression->accept(this);
-    delete toDelete.get<ValueMap*>();
+    delete toDelete.as<PackedStruct*>();
     return nullptr;
 }
 
@@ -259,11 +477,16 @@ Any MiniInterpreter::visit(ast::DotExpression* expression) {
         throw std::runtime_error(std::to_string(expression->line) + ": invalid struct for dot expression");
     } else if (left.isNull()) {
         throw std::runtime_error(std::to_string(expression->line) + ": null used in dot expression");
+    } else if (!left.initialized) {
+        throw std::runtime_error("use of uninitialized value");
     }
-    ValueMap* vm = left.get<ValueMap*>();
+    PackedStruct* ps = left.as<PackedStruct*>();
+    // parentStruct = ps; // OR THIS?
+    // lastField = expression->id; // DO NOT DO THIS.
     // this should be left raw, no check
-    if (vm->count(expression->id)) {
-        return *(vm->at(expression->id));
+    // TODO THIS IS WHERE THINGS ARE BREAKING...
+    if (ps->has(expression->id)) {
+        return *(ps->at(expression->id));
     } else {
         throw std::runtime_error(std::to_string(expression->line) + ": invalid field in dot expression");
     }
@@ -276,6 +499,7 @@ Any MiniInterpreter::visit(ast::FalseExpression* expression) {
 Any MiniInterpreter::visit(ast::Function* function) {
     for (ast::DeclarationPtr local : function->locals) {
         TypedValuePtr evaluated = local->accept(this);
+        // evaluated->initialized = true; //unsure... TODO
         // scopes.back().insert({local->name, evaluated});
         scopes.back()[local->name] = evaluated;
     }
@@ -328,11 +552,18 @@ Any MiniInterpreter::visit(ast::LvalueDot* lvalue) {
         throw std::runtime_error(std::to_string(lvalue->line) + ": invalid lvalue for dot expression");
     } else if (left.isNull()) {
         throw std::runtime_error(std::to_string(lvalue->line) + ": null lvalue for dot expression");
+    } else if (!left.initialized) {
+        throw std::runtime_error("use of uninitialized value");
     }
-    ValueMap* vm = left.get<ValueMap*>();
+
+    PackedStruct* ps = left.as<PackedStruct*>();
+    // is this just for the lvalue...?
+    parentStruct = ps;
+    lastField = lvalue->id;
+    
     // still feels gross
-    if (vm->count(lvalue->id)) {
-        return vm->at(lvalue->id);
+    if (ps->has(lvalue->id)) {
+        return ps->at(lvalue->id);
     } else {
         throw std::runtime_error(std::to_string(lvalue->line) + ": invalid field in dot expression");
     }
@@ -344,24 +575,31 @@ Any MiniInterpreter::visit(ast::LvalueId* lvalue) {
 
 Any MiniInterpreter::visit(ast::NewExpression* expression) {
     if (structs.count(expression->id)) {
-        return TypedValue(expression->id, new ValueMap(structs.at(expression->id)));
+        // return TypedValue(expression->id, new ValueMap(structs.at(expression->id)), true);
+        return TypedValue(expression->id, new PackedStruct(structs.at(expression->id)));
     } else {
         throw std::runtime_error(std::to_string(expression->line) + ": new expression of nonexistent struct");
     }
 }
 
 Any MiniInterpreter::visit(ast::NullExpression* expression) {
-    return TypedValue(ast::Type::nullName(), static_cast<ValueMap*>(nullptr));
+    return TypedValue(ast::Type::nullName(), (PackedStruct*) NULL);
 }
 
 Any MiniInterpreter::visit(ast::PrintLnStatement* statement) {
     TypedValue result = statement->expression->accept(this);
+    if (!result.initialized) {
+        throw std::runtime_error("use of uninitialized value");
+    }
     std::cout << result.toString() << std::endl;
     return nullptr;
 }
 
 Any MiniInterpreter::visit(ast::PrintStatement* statement) {
     TypedValue result = statement->expression->accept(this);
+    if (!result.initialized) {
+        throw std::runtime_error("use of uninitialized value");
+    }
     std::cout << result.toString() << ' ';
     return nullptr;
 }
@@ -375,7 +613,7 @@ Any MiniInterpreter::visit(ast::Program* program) {
     globals.clear();
     scopes.clear();
     funcs.clear();
-    structs.clear();
+    // structs.clear();
 
     scopes.push_back(ValueMap()); // scope for main
     for (ast::DeclarationPtr d : program->decls) {
@@ -385,7 +623,8 @@ Any MiniInterpreter::visit(ast::Program* program) {
     }
 
     for (ast::TypeDeclarationPtr td : program->types) {
-        structs.insert({td->name, td->accept(this)});
+        // structs.insert({td->name, td->accept(this)});
+        structs.insert({td->name, td});
     }
 
     // check to see if main actually returned something?
@@ -412,7 +651,7 @@ Any MiniInterpreter::visit(ast::Program* program) {
         std::cerr << "error: main did not return an int\n";
         return 1;
     } else {
-        return retVal.get<int>();
+        return retVal.asInt();
     }
     return 1;
 }
@@ -448,19 +687,24 @@ Any MiniInterpreter::visit(ast::TrueExpression* expression) {
 }
 
 Any MiniInterpreter::visit(ast::TypeDeclaration* typeDeclaration) {
-    ValueMap m;
-    for (auto dec : typeDeclaration->fields) {
-        m.insert({dec->name, dec->accept(this)});
-    }
-    return m;
+    // ValueMap m;
+    // for (auto dec : typeDeclaration->fields) {
+    //     m.insert({dec->name, dec->accept(this)});
+    // }
+    // return m;
+    return nullptr;
 }
 
 Any MiniInterpreter::visit(ast::UnaryExpression* expression) {
     TypedValue operand = expression->operand->accept(this);
+    if (!operand.initialized) {
+        throw std::runtime_error("use of uninitialized value");
+    }
+
     if (expression->op == ast::UnaryExpression::NOT && operand.type == ast::BoolType::name()) {
-        return TypedValue(operand.type, !operand.get<bool>());
+        return TypedValue(operand.type, !operand.asBool());
     } else if (expression->op == ast::UnaryExpression::MINUS && operand.type == ast::IntType::name()) {
-        return TypedValue(operand.type, -operand.get<int>());
+        return TypedValue(operand.type, -operand.asInt());
     }
 }
 
@@ -483,7 +727,16 @@ Any MiniInterpreter::visit(ast::WhileStatement* statement) {
 }
 
 int MiniInterpreter::run() {
-    return program->accept(this);
+    int exitCode = program->accept(this);
+    // PackedStruct* x = lookup("head")->asStruct();
+    // uint8_t* nextBuf = x->getPtr("next");
+    // uint8_t* offset = nextBuf + 4;
+    // // intptr_t nb = *((intptr_t*) offset);
+    // uint8_t* nextNext = *(uint8_t**) offset;
+    // // std::cout << (void*) nb;
+    // // std::cout << nextNext << std::endl;
+    // std::cout << ((int32_t*) nextNext)[0] << std::endl;
+    return exitCode;
 }
 
 }

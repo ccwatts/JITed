@@ -1,7 +1,7 @@
 CC=g++
 CFLAGS=-c -g -fPIC -I/usr/lib/llvm-10/include
 
-LDLIBS=-lantlr4-runtime -L/usr/lib/llvm-10/lib -lLLVM-10
+LDLIBS=-lantlr4-runtime -L/usr/lib/llvm-10/lib -lLLVM-10 -lLLVM
 
 all: compiler interpreter jit
 
