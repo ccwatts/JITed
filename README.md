@@ -19,6 +19,6 @@ The files `MainJIT.cpp`, `MainCompiler.cpp`, and `MainInterpreter.cpp` contain t
 
 To run the executables, simply run the selected executable (`jit`, `compiler`, or `interpreter`) and give a `.mini` source file as the single argument.
 
-### Credits
+## Credits
 
 Thanks to Aaron Keen for being my advisor on this project, and Kiley Roberson for working with me on the Java-based compiler that formed the model for the example compiler.
