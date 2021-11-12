@@ -1,1 +1,0 @@
-%struct.LinkedList %struct.LinkedList* next i32 val
