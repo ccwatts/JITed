@@ -1,5 +1,7 @@
 # EduJIT
 
+Thesis by Caleb Watts for the graduate program at California Polytechnic State University, San Luis Obispo.
+
 ## Requirements
 
 1. `LLVM-10`
