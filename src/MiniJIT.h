@@ -13,13 +13,18 @@
 #include "MiniInterpreter.h"
 
 #include <cstdint>
+#include <string>
+#include <map>
 #include <iostream>
+// #include <functional>
 
 namespace jited {
 
 extern "C" void printInt(int x);
 extern "C" void printIntEndl(int x);
 extern "C" int readInt();
+
+bool defaultHeatFunction(std::string called, std::string lastCalled, std::map<std::string, int> callCounts);
 
 class ModuleCompiler {
 private:
@@ -43,8 +48,12 @@ class JIT : public mini::MiniInterpreter {
 protected:
     std::unique_ptr<ModuleCompiler> mc;
     std::shared_ptr<ast::ASTVisitor> compiler;
+    std::string lastCalled;
+    std::map<std::string, int> callCounts;
+    std::function<bool(std::string, std::string, std::map<std::string, int>)> heatFunction;
 public:
     JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler);
+    ~JIT();
     
     // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
     antlrcpp::Any visit(ast::InvocationExpression* expression) override;
@@ -63,11 +72,13 @@ public:
 
     std::string moduleString(std::string fname);
     
-    std::string functionPrefix(std::string name);
+    std::string entryFunction(std::string name);
 
     void compileFunction(std::string fname);
 
     void makeGlobals();
+
+    void setHeatFunction(std::function<bool(std::string, std::string, std::map<std::string, int>)> newHeatFn);
 
     static void initialize();
 };

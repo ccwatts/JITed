@@ -365,13 +365,13 @@ void StatementToBlockVisitor::processFunctionHeader(ast::Function* function) {
     for (ast::DeclarationPtr param : function->params) {
         header += param->type->toString() + " %" + param->name + ", ";
     }
-    #ifdef PRINTMETA
+    // #ifdef PRINTMETA
     if (function->params.size() > 0) {
         this->current->header = header.substr(0, header.length() - 2) + ")\n{\n";
     } else {
         this->current->header = header + ")\n{\n";
     }
-    #endif
+    // #endif
 }
 
 void StatementToBlockVisitor::processRetval() {
