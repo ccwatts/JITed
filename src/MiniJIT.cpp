@@ -164,9 +164,6 @@ JIT::~JIT() {};
 antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
     // branch based on whether it's compiled already or not
     if (mc->getSym(expression->name)) {
-        // run jitted
-        // we MAY need to change the function prototypes to have more control over args
-        // TODO
         // int8_t* args = new int8_t[expression->arguments.size()];
         #ifdef DEBUGJIT
         std::cout << "running jitted symbol...\n";
@@ -177,8 +174,6 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         for (ast::ExpressionPtr e : expression->arguments) {
             mini::TypedValue tv = e->accept(this);
             if (tv.isStruct()) {
-                // totalSize += sizeof(intptr_t) / sizeof(int32_t);
-                // mini::PackedStruct* ps = tv.asStruct();
                 totalSize += sizeof(intptr_t) / sizeof(int32_t);
             } else {
                 totalSize += 1;
@@ -192,12 +187,10 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         for (mini::TypedValue tv : vals) {
             if (tv.type == ast::IntType::name() || tv.type == ast::BoolType::name()) {
                 int32_t i32 = tv.asI32();
-                // std::memcpy(args + currentOffset, &i32, sizeof(int32_t));
                 args[currentOffset] = i32;
                 currentOffset += 1;
             } else {
                 mini::PackedStruct* ps = tv.asStruct();
-                // std::memcpy(args + currentOffset, ps->buf, ps->totalBytes);
                 *((uint8_t**) (args + currentOffset)) = ps->buf;
                 currentOffset += sizeof(intptr_t) / sizeof(int32_t);
             }
@@ -228,6 +221,7 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         return retVal;
     } else {
         antlrcpp::Any rv = MiniInterpreter::visit(expression);
+        
         if (heatFunction(expression->name, lastCalled, callCounts)) {
             compileFunction(expression->name);
         }
@@ -284,8 +278,6 @@ std::string JIT::globalString() {
 // this may need to take a function, as well? need access to all functions
 // that may be possible to fudge using error handlers tho
 std::string JIT::declareString(std::string fname) {
-    // start with "" to have a newline
-    // TODO
     std::ostringstream oss;
     oss << "declare i8* @malloc(i32)\n"
         << "declare void @free(i8*)\n"
@@ -317,25 +309,13 @@ std::string JIT::moduleString(std::string fname) {
     // har har effin string
     std::string fnString = funcs.at(fname)->accept(compiler.get());
 
-    // std::regex label("^([a-zA-Z][a-zA-Z0-9]*):(.*)");
-    // std::smatch sm;
 
     oss << structsString();
     oss << globalString();
-    // if (std::regex_search(fbody, sm, label)) {
-    //     oss << functionPrefix(fname);
-    //     oss << "br label %" << sm[1] << "\n";
-    //     oss << fbody;
-    // } else {
-    //     throw std::runtime_error("start of compiled function body was not a label");
-    // }
     oss << entryFunction(fname);
-
     oss << fnString;
     oss << declareString(fname);
 
-
-    // 
     return oss.str();
 }
 
@@ -390,23 +370,15 @@ std::string JIT::entryFunction(std::string name) {
 }
 
 void JIT::compileFunction(std::string fname) {
-    // TODO same as above, may need to change the function headers so we can actually change things...
-    
-    // for (ast::FunctionPtr f : program->funcs) {
-    //     if (f->name == fname) {
-    //         std::string moduleStr = f->accept(compiler.get());
-    //         // TODO do processing first to add structs and fns
-    //         mc->addString(moduleStr);
-    //         return;
-    //     }
-    // }
     if (funcs.count(fname)) {
-        ast::FunctionPtr f = funcs.at(fname);
-        std::string moduleStr = moduleString(fname);
-        #ifdef DEBUGJIT
-        std::cout << moduleStr << std::endl;
-        #endif
-        mc->addString(moduleStr);
+        if (!mc->getSym(fname)) {
+            ast::FunctionPtr f = funcs.at(fname);
+            std::string moduleStr = moduleString(fname);
+            // #ifdef DEBUGJIT
+            // std::cout << moduleStr << std::endl;
+            // #endif
+            mc->addString(moduleStr);
+        }
     } else {
         throw std::runtime_error("compilation requested for nonexistent function");
     }
