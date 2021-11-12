@@ -17,4 +17,4 @@ The files `MainJIT.cpp`, `MainCompiler.cpp`, and `MainInterpreter.cpp` contain t
 
 ## Running
 
-To run the executables, simply supply a .mini file as the only argument.
+To run the executables, simply run the selected executable (`jit`, `compiler`, or `interpreter`) and give a `.mini` source file as the single argument.

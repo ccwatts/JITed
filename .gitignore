@@ -33,3 +33,6 @@
 
 .git_credentials
 inputs/*
+src/jit
+src/interpreter
+src/compiler
