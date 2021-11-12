@@ -631,38 +631,38 @@ Any MiniInterpreter::visit(ast::Program* program) {
         return 1;
     }
 
-    // globals.clear();
+    globals.clear();
     scopes.clear();
-    // funcs.clear();
-    // structs.clear();
+    funcs.clear();
+    structs.clear();
 
     scopes.push_back(ValueMap()); // scope for main
-    // for (ast::DeclarationPtr d : program->decls) {
-    //     // get the globals
-    //     TypedValuePtr decRes = d->accept(this);
-    //     globals.insert({d->name, decRes});
-    // }
-
-    // for (ast::TypeDeclarationPtr td : program->types) {
-    //     // structs.insert({td->name, td->accept(this)});
-    //     structs.insert({td->name, td});
-    // }
-
-    // // check to see if main actually returned something?
-    // ast::FunctionPtr mainFn = nullptr;
-    // for (ast::FunctionPtr f : program->funcs) {
-    //     if (f->name == "main") {
-    //         mainFn = f;
-    //     }
-    //     funcs.insert({f->name, f});
-    // };
-    
-    if (funcs.count("main") == 0) {
-        std::cerr << "error: no main function in program\n";
-        return -1;
+    for (ast::DeclarationPtr d : program->decls) {
+        // get the globals
+        TypedValuePtr decRes = d->accept(this);
+        globals.insert({d->name, decRes});
     }
 
-    ast::FunctionPtr mainFn = funcs.at("main");
+    for (ast::TypeDeclarationPtr td : program->types) {
+        // structs.insert({td->name, td->accept(this)});
+        structs.insert({td->name, td});
+    }
+
+    // check to see if main actually returned something?
+    ast::FunctionPtr mainFn = nullptr;
+    for (ast::FunctionPtr f : program->funcs) {
+        if (f->name == "main") {
+            mainFn = f;
+        }
+        funcs.insert({f->name, f});
+    };
+    
+    // if (funcs.count("main") == 0) {
+    //     std::cerr << "error: no main function in program\n";
+    //     return -1;
+    // }
+
+    // ast::FunctionPtr mainFn = funcs.at("main");
 
 
     Any result = mainFn->accept(this);

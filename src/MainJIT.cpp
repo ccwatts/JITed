@@ -9,6 +9,10 @@
 
 // parse assembly string...?
 
+bool customHeat(std::string called, std::string lastCalled, std::map<std::string, int> callCounts) {
+    return callCounts.at(called) >= 5;
+}
+
 int main(int argc, char** argv) {
     if (argc == 1) {
         std::cerr << "error: no input file specified" << std::endl
@@ -24,7 +28,10 @@ int main(int argc, char** argv) {
     std::shared_ptr<ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
     jited::JIT::initialize();
     jited::JIT j(p, compiler);
-    return j.run();
+    // j.setHeatFunction(customHeat);
+    j.run();
+
+    return 0;
 }
 
 

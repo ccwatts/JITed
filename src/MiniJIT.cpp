@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <iostream>
 #include <regex>
+#include <functional>
 
 using namespace llvm;
 
@@ -33,6 +34,10 @@ extern "C" int readInt() {
     int x;
     std::cin >> x;
     return x;
+}
+
+bool defaultHeatFunction(std::string called, std::string lastCalled, std::map<std::string, int> callCounts) {
+    return true;
 }
 
 void ModuleCompiler::dontLogErrors(llvm::Error Err) {};
@@ -144,10 +149,16 @@ void* ModuleCompiler::getSym(std::string name) {
 JIT::JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler) :
     mini::MiniInterpreter(program),
     mc(std::move(jited::ModuleCompiler::create())),
-    compiler(compiler)
+    compiler(compiler),
+    heatFunction(defaultHeatFunction)
 {
     makeGlobals();
+    for (auto pair : funcs) {
+        callCounts[pair.first] = 0;
+    }
 };
+
+JIT::~JIT() {};
 
 // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
 antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
@@ -170,7 +181,7 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
                 // mini::PackedStruct* ps = tv.asStruct();
                 totalSize += sizeof(intptr_t) / sizeof(int32_t);
             } else {
-                totalSize += sizeof(int32_t);
+                totalSize += 1;
             }
             vals.push_back(tv);
         }
@@ -195,38 +206,34 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         std::string returnType = funcs.at(expression->name)->retType->toMiniString();
         antlrcpp::Any retVal;
         if (returnType == ast::IntType::name()) {
-            auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name);
+            auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             int rawRetVal = fptr(args);
             retVal = mini::TypedValue(returnType, rawRetVal);
         } else if (returnType == ast::BoolType::name()) {
-            auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name);
+            auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             bool rawRetVal = fptr(args);
             retVal = mini::TypedValue(returnType, rawRetVal);
         } else if (returnType == ast::VoidType::name()) {
-            auto fptr = (void (*)(int32_t*)) mc->getSym(expression->name);
+            auto fptr = (void (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             fptr(args);
             retVal = nullptr;
         } else {
-
-            // TODO: probably need a reverse lookup for this
-            // with a buffer ptr, look for a packedstruct with that as its entry
-            // alternatively, the TypedValues shouldn't take ownership of what they point to
-            // can probably just make a new packedstruct and have a constructor that accepts the old buffer
-            // perhaps set a flag NOT to delete if we're copying off an existing buffer; it'll eventually get removed, anyways
-
-            // we still need to find the original, i think. otherwise, can't differentiate between structs made inside the function
-            // and structs that already existed elsewhere.
-            // std::cout << returnType << std::endl;
-            // throw std::runtime_error("struct returns unimplemented");
-            auto fptr = (uint8_t* (*)(int32_t*)) mc->getSym(expression->name);
+            auto fptr = (uint8_t* (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             uint8_t* rawRetVal = fptr(args);
             retVal = mini::TypedValue(returnType, reverseLookup(rawRetVal, returnType));
         }
         delete[] args;
+
+
         return retVal;
     } else {
         antlrcpp::Any rv = MiniInterpreter::visit(expression);
-        compileFunction(expression->name);
+        if (heatFunction(expression->name, lastCalled, callCounts)) {
+            compileFunction(expression->name);
+        }
+
+        callCounts[expression->name] += 1;
+        lastCalled = expression->name;
         return rv;
     }
 }
@@ -307,20 +314,24 @@ std::string JIT::declareString(std::string fname) {
 
 std::string JIT::moduleString(std::string fname) {
     std::ostringstream oss;
-    std::string fbody = funcs.at(fname)->accept(compiler.get());
+    // har har effin string
+    std::string fnString = funcs.at(fname)->accept(compiler.get());
 
-    std::regex label("^([a-zA-Z][a-zA-Z0-9]*):(.*)");
-    std::smatch sm;
+    // std::regex label("^([a-zA-Z][a-zA-Z0-9]*):(.*)");
+    // std::smatch sm;
 
     oss << structsString();
     oss << globalString();
-    if (std::regex_search(fbody, sm, label)) {
-        oss << functionPrefix(fname);
-        oss << "br label %" << sm[1] << "\n";
-        oss << fbody;
-    } else {
-        throw std::runtime_error("start of compiled function body was not a label");
-    }
+    // if (std::regex_search(fbody, sm, label)) {
+    //     oss << functionPrefix(fname);
+    //     oss << "br label %" << sm[1] << "\n";
+    //     oss << fbody;
+    // } else {
+    //     throw std::runtime_error("start of compiled function body was not a label");
+    // }
+    oss << entryFunction(fname);
+
+    oss << fnString;
     oss << declareString(fname);
 
 
@@ -328,7 +339,7 @@ std::string JIT::moduleString(std::string fname) {
     return oss.str();
 }
 
-std::string JIT::functionPrefix(std::string name) {
+std::string JIT::entryFunction(std::string name) {
     if (funcs.count(name)) {
         std::string argsName = "%argsarray";
         int ctr = 0;
@@ -336,7 +347,7 @@ std::string JIT::functionPrefix(std::string name) {
         int ptrStep = sizeof(intptr_t) / sizeof(int32_t);
         std::ostringstream oss;
         ast::FunctionPtr function = funcs.at(name);
-        oss << "define " + function->retType->toString() + " @" + function->name + "(i32* " + argsName + ") {\nARGPARSE:\n";
+        oss << "define " + function->retType->toString() + " @" + function->name + "ENTRY(i32* " + argsName + ") {\nL0:\n";
         for (ast::DeclarationPtr param : function->params) {
             oss << "%" << param->name << "PTR = getelementptr i32, i32* " << argsName << ", i64 " << i << "\n";
             if (param->type->toString() == "i32") {
@@ -352,6 +363,26 @@ std::string JIT::functionPrefix(std::string name) {
                 i += ptrStep;
             }
         }
+
+        std::string paramList = "(";
+        for (ast::DeclarationPtr param : function->params) {
+            paramList += param->type->toString() + " %" + param->name + ", ";
+        }
+        if (function->params.size() > 0) {
+            paramList = paramList.substr(0, paramList.length() - 2) + ")";
+        } else {
+            paramList += ")";
+        }
+        
+        if (function->retType->toString() != "void") {
+            oss << "%_retval_ = call " << function->retType->toString() + " @" + function->name << paramList << "\n"
+                << "ret " << function->retType->toString() << " %_retval_\n";
+        } else {
+            oss << "call " << function->retType->toString() + " @" + function->name << paramList << "\n"
+                << "ret void\n";
+        }
+        
+        oss << "}\n";
         return oss.str();
     } else {
         return "";
@@ -418,6 +449,10 @@ void JIT::makeGlobals() {
             }
         }
     }
+}
+
+void JIT::setHeatFunction(std::function<bool(std::string, std::string, std::map<std::string, int>)> newHeatFn) {
+    heatFunction = newHeatFn;
 }
 
 void JIT::initialize() {
