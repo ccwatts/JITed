@@ -44,6 +44,11 @@ T TypedValue::as() {
 void TypedValue::setValue(antlrcpp::Any val, PackedStruct* parentStruct, std::string lastField) {
     // parent struct is unused for int and bool
     // only needed to perform linkage in the case of member structs
+    if (val.is<IntPtr>()) val = *(val.as<IntPtr>());
+    else if (val.is<int*>()) val = *(val.as<int*>());
+    else if (val.is<BoolPtr>()) val = *(val.as<BoolPtr>());
+    else if (val.is<bool*>()) val = *(val.as<bool*>());
+
     if (val.is<int>()) { // int
         if (value.is<int32_t*>()) {
             *(value.as<int32_t*>()) = (int32_t) val.as<int>();
@@ -74,6 +79,8 @@ void TypedValue::setValue(antlrcpp::Any val, PackedStruct* parentStruct, std::st
         } else {
             value = val;
         }
+    } else {
+        throw std::runtime_error("value in assignment is not an int, bool, or struct");
     }
     initialized = true;
     return;
@@ -275,7 +282,21 @@ void PackedStruct::setMember(std::string fieldName, PackedStruct* member) {
 
 
 
-MiniInterpreter::MiniInterpreter(ast::ProgramPtr program) : program(program), parentStruct(NULL) {};
+MiniInterpreter::MiniInterpreter(ast::ProgramPtr program) : program(program), parentStruct(NULL) {
+    for (ast::DeclarationPtr d : program->decls) {
+        // get the globals
+        TypedValuePtr decRes = d->accept(this);
+        globals.insert({d->name, decRes});
+    }
+
+    for (ast::TypeDeclarationPtr td : program->types) {
+        structs.insert({td->name, td});
+    }
+
+    for (ast::FunctionPtr f : program->funcs) {
+        funcs.insert({f->name, f});
+    };
+};
 MiniInterpreter::~MiniInterpreter() {};
 
 void MiniInterpreter::resetStruct() {
@@ -453,7 +474,7 @@ Any MiniInterpreter::visit(ast::ConditionalStatement* statement) {
 Any MiniInterpreter::visit(ast::Declaration* declaration) {
     std::string typeStr = declaration->type->accept(this);
     if (typeStr == ast::IntType::name()) {
-        return std::make_shared<TypedValue>(typeStr, 0, false);
+        return std::make_shared<TypedValue>(typeStr, std::make_shared<int>(0), false);
     } else if (typeStr == ast::BoolType::name()) {
         return std::make_shared<TypedValue>(typeStr, false, false);
     } else if (typeStr == ast::VoidType::name()) {
@@ -610,36 +631,39 @@ Any MiniInterpreter::visit(ast::Program* program) {
         return 1;
     }
 
-    globals.clear();
+    // globals.clear();
     scopes.clear();
-    funcs.clear();
+    // funcs.clear();
     // structs.clear();
 
     scopes.push_back(ValueMap()); // scope for main
-    for (ast::DeclarationPtr d : program->decls) {
-        // get the globals
-        TypedValuePtr decRes = d->accept(this);
-        globals.insert({d->name, decRes});
-    }
+    // for (ast::DeclarationPtr d : program->decls) {
+    //     // get the globals
+    //     TypedValuePtr decRes = d->accept(this);
+    //     globals.insert({d->name, decRes});
+    // }
 
-    for (ast::TypeDeclarationPtr td : program->types) {
-        // structs.insert({td->name, td->accept(this)});
-        structs.insert({td->name, td});
-    }
+    // for (ast::TypeDeclarationPtr td : program->types) {
+    //     // structs.insert({td->name, td->accept(this)});
+    //     structs.insert({td->name, td});
+    // }
 
-    // check to see if main actually returned something?
-    ast::FunctionPtr mainFn = nullptr;
-    for (ast::FunctionPtr f : program->funcs) {
-        if (f->name == "main") {
-            mainFn = f;
-        }
-        funcs.insert({f->name, f});
-    };
-
-    if (mainFn == nullptr) {
+    // // check to see if main actually returned something?
+    // ast::FunctionPtr mainFn = nullptr;
+    // for (ast::FunctionPtr f : program->funcs) {
+    //     if (f->name == "main") {
+    //         mainFn = f;
+    //     }
+    //     funcs.insert({f->name, f});
+    // };
+    
+    if (funcs.count("main") == 0) {
         std::cerr << "error: no main function in program\n";
-        return 1;
+        return -1;
     }
+
+    ast::FunctionPtr mainFn = funcs.at("main");
+
 
     Any result = mainFn->accept(this);
     if (!result.is<TypedValue>()) {

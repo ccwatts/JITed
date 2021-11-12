@@ -125,7 +125,7 @@ int ModuleCompiler::addString(std::string input) {
 
     if (auto err = this->jit->addIRModule(std::move(tsm))) {
         errs() << err;
-        return 1;
+        throw std::runtime_error("incomplete compilation");
     }
     return 0;
 }
@@ -144,7 +144,10 @@ void* ModuleCompiler::getSym(std::string name) {
 JIT::JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler) :
     mini::MiniInterpreter(program),
     mc(std::move(jited::ModuleCompiler::create())),
-    compiler(compiler) {};
+    compiler(compiler)
+{
+    makeGlobals();
+};
 
 // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
 antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
@@ -154,6 +157,9 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         // we MAY need to change the function prototypes to have more control over args
         // TODO
         // int8_t* args = new int8_t[expression->arguments.size()];
+        #ifdef DEBUGJIT
+        std::cout << "running jitted symbol...\n";
+        #endif
         
         std::vector<mini::TypedValue> vals;
         int totalSize = 0;
@@ -181,7 +187,7 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
             } else {
                 mini::PackedStruct* ps = tv.asStruct();
                 // std::memcpy(args + currentOffset, ps->buf, ps->totalBytes);
-                *((uint8_t**) args + currentOffset) = ps->buf;
+                *((uint8_t**) (args + currentOffset)) = ps->buf;
                 currentOffset += sizeof(intptr_t) / sizeof(int32_t);
             }
         }
@@ -220,9 +226,7 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         return retVal;
     } else {
         antlrcpp::Any rv = MiniInterpreter::visit(expression);
-        if (true) {
-            compileFunction(expression->name);
-        }
+        compileFunction(expression->name);
         return rv;
     }
 }
@@ -255,6 +259,16 @@ std::string JIT::structsString() {
             oss << typeList.substr(0, typeList.length() - 2);
         }
         oss << "}>\n";
+    }
+    return oss.str();
+}
+
+std::string JIT::globalString() {
+    std::ostringstream oss;
+    for (ast::DeclarationPtr dec : program->decls) {
+        if (funcs.count(dec->name) == 0) {
+            oss << "@" << dec->name << " = external dso_local global " << dec->type->toString() << ", align 4\n";
+        }
     }
     return oss.str();
 }
@@ -299,7 +313,7 @@ std::string JIT::moduleString(std::string fname) {
     std::smatch sm;
 
     oss << structsString();
-    // std::cout << fbody << std::endl;
+    oss << globalString();
     if (std::regex_search(fbody, sm, label)) {
         oss << functionPrefix(fname);
         oss << "br label %" << sm[1] << "\n";
@@ -358,10 +372,51 @@ void JIT::compileFunction(std::string fname) {
     if (funcs.count(fname)) {
         ast::FunctionPtr f = funcs.at(fname);
         std::string moduleStr = moduleString(fname);
-        // std::cout << moduleStr << std::endl;
+        #ifdef DEBUGJIT
+        std::cout << moduleStr << std::endl;
+        #endif
         mc->addString(moduleStr);
     } else {
         throw std::runtime_error("compilation requested for nonexistent function");
+    }
+}
+
+void JIT::makeGlobals() {
+    auto &jd = mc->jit->getMainJITDylib();
+    for (auto pair : globals) {
+        auto mangled = mc->mangler(pair.first);
+        mini::TypedValuePtr tv = pair.second;
+        if (tv->value.is<mini::IntPtr>()) {
+            int* ip = tv->value.as<mini::IntPtr>().get();
+            Error e = jd.define(orc::absoluteSymbols({{
+                mangled,
+                JITEvaluatedSymbol(pointerToJITTargetAddress(ip), JITSymbolFlags::Exported)
+            }}));
+            if (e) {
+                errs() << e;
+                throw std::runtime_error("error in global definition");
+            }
+        } else if (tv->value.is<mini::BoolPtr>()) {
+            bool* bp = tv->value.as<mini::BoolPtr>().get();
+            Error e = jd.define(orc::absoluteSymbols({{
+                mangled,
+                JITEvaluatedSymbol(pointerToJITTargetAddress(bp), JITSymbolFlags::Exported)
+            }}));
+            if (e) {
+                errs() << e;
+                throw std::runtime_error("error in global definition");
+            }
+        } else {
+            mini::PackedStruct* ps = tv->value.as<mini::PackedStruct*>();
+            Error e = jd.define(orc::absoluteSymbols({{
+                mangled,
+                JITEvaluatedSymbol(pointerToJITTargetAddress(ps), JITSymbolFlags::Exported)
+            }}));
+            if (e) {
+                errs() << e;
+                throw std::runtime_error("error in global definition");
+            }
+        }
     }
 }
 

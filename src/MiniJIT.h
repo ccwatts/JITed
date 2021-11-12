@@ -54,6 +54,8 @@ public:
     // contains the LLVM for defining necessary structs
     std::string structsString();
 
+    std::string globalString();
+
     // contains the declarations of external functions required
     // this may need to take a function, as well? need access to all functions
     // that may be possible to fudge using error handlers tho
@@ -64,6 +66,8 @@ public:
     std::string functionPrefix(std::string name);
 
     void compileFunction(std::string fname);
+
+    void makeGlobals();
 
     static void initialize();
 };
