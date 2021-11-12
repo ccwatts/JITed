@@ -36,3 +36,4 @@ inputs/*
 src/jit
 src/interpreter
 src/compiler
+old/*
