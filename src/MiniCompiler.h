@@ -29,49 +29,49 @@ namespace minic {
 // #include "tl/block.h"
 
 typedef std::map<std::string, std::pair<std::string, int>> StructInfoTable;
-class ExpressionToValueVisitor : public ast::ExpressionVisitor {
+class ExpressionToValueVisitor : public jited::ast::ExpressionVisitor {
 private:
-    ast::ProgramPtr program;
+    jited::ast::ProgramPtr program;
     BlockPtr current;
 
     template <typename T>
     antlrcpp::Any proxy_val(std::shared_ptr<T> from);
 
-    BinaryInstruction::Operator convertBop(ast::BinaryExpression::Operator op);
+    BinaryInstruction::Operator convertBop(jited::ast::BinaryExpression::Operator op);
 public:
     std::map<std::string, StructInfoTable>* structTable;
     std::map<std::string, std::string>* locals;
     std::map<std::string, std::string>* globals;
-    std::map<std::string, ast::FunctionPtr>* functions;
+    std::map<std::string, jited::ast::FunctionPtr>* functions;
 
     ExpressionToValueVisitor();
     ExpressionToValueVisitor(BlockPtr current, std::map<std::string, StructInfoTable>* structTable,
                             std::map<std::string, std::string>* locals, std::map<std::string, std::string>* globals,
-                            std::map<std::string, ast::FunctionPtr>* functions);
+                            std::map<std::string, jited::ast::FunctionPtr>* functions);
 
     ValuePtr zext(ValuePtr v);
     ValuePtr trunc(ValuePtr v);
     void setCurrent(BlockPtr newCurrent);
     std::string structName(std::string structType);
-    antlrcpp::Any visit(ast::BinaryExpression* expression) override;
-    antlrcpp::Any visit(ast::DotExpression* expression) override;
-    antlrcpp::Any visit(ast::FalseExpression* expression) override;
-    antlrcpp::Any visit(ast::IdentifierExpression* expression) override;
-    antlrcpp::Any visit(ast::IntegerExpression* expression) override;
-    antlrcpp::Any visit(ast::InvocationExpression* expression) override;
-    antlrcpp::Any visit(ast::LvalueDot* lvalue) override;
-    antlrcpp::Any visit(ast::LvalueId* lvalue) override;
-    antlrcpp::Any visit(ast::NewExpression* expression) override;
-    antlrcpp::Any visit(ast::NullExpression* expression) override;
-    antlrcpp::Any visit(ast::ReadExpression* expression) override;
-    antlrcpp::Any visit(ast::TrueExpression* expression) override;
-    antlrcpp::Any visit(ast::UnaryExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::BinaryExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::DotExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::FalseExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::IdentifierExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::IntegerExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::InvocationExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::LvalueDot* lvalue) override;
+    antlrcpp::Any visit(jited::ast::LvalueId* lvalue) override;
+    antlrcpp::Any visit(jited::ast::NewExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::NullExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::ReadExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::TrueExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::UnaryExpression* expression) override;
 };
 
-class StatementToBlockVisitor : public ast::ASTVisitor {
+class StatementToBlockVisitor : public jited::ast::ASTVisitor {
 private:
-    ast::ProgramPtr program;
-    ast::Function* currentFunction;
+    jited::ast::ProgramPtr program;
+    jited::ast::Function* currentFunction;
     ExpressionToValueVisitor expVisitor;
     Blocks blocks;
     BlockPtr current, retBlock;
@@ -81,32 +81,32 @@ private:
     std::map<std::string, StructInfoTable> structTable;
     std::map<std::string, std::string> locals;
     std::map<std::string, std::string> globals;
-    std::map<std::string, ast::FunctionPtr> functions;
+    std::map<std::string, jited::ast::FunctionPtr> functions;
 
     void syncExpVisitor();
     void setCurrent(BlockPtr newCurrent);
-    bool isStruct(ast::TypePtr type);
-    void processTypedec(ast::TypeDeclarationPtr typeDec);
-    void processGlobals(ast::DeclarationPtr declaration);
-    void processFunctionHeader(ast::Function* function);
+    bool isStruct(jited::ast::TypePtr type);
+    void processTypedec(jited::ast::TypeDeclarationPtr typeDec);
+    void processGlobals(jited::ast::DeclarationPtr declaration);
+    void processFunctionHeader(jited::ast::Function* function);
     void processRetval();
     BlockPtr newBlock();
 public:
-    StatementToBlockVisitor(ast::ProgramPtr program);
+    StatementToBlockVisitor(jited::ast::ProgramPtr program);
         
-    antlrcpp::Any visit(ast::AssignmentStatement* statement) override;
-    antlrcpp::Any visit(ast::BlockStatement* statement) override;
-    antlrcpp::Any visit(ast::ConditionalStatement* statement) override;
-    antlrcpp::Any visit(ast::Declaration* declaration) override;
-    antlrcpp::Any visit(ast::DeleteStatement* statement) override;
-    antlrcpp::Any visit(ast::Function* function) override;
-    antlrcpp::Any visit(ast::InvocationStatement* statement) override;
-    antlrcpp::Any visit(ast::PrintLnStatement* statement) override;
-    antlrcpp::Any visit(ast::PrintStatement* statement) override;
-    antlrcpp::Any visit(ast::Program* program) override;
-    antlrcpp::Any visit(ast::ReturnEmptyStatement* statement) override;
-    antlrcpp::Any visit(ast::ReturnStatement* statement) override;
-    antlrcpp::Any visit(ast::WhileStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::AssignmentStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::BlockStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::ConditionalStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::Declaration* declaration) override;
+    antlrcpp::Any visit(jited::ast::DeleteStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::Function* function) override;
+    antlrcpp::Any visit(jited::ast::InvocationStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::PrintLnStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::PrintStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::Program* program) override;
+    antlrcpp::Any visit(jited::ast::ReturnEmptyStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::ReturnStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::WhileStatement* statement) override;
 };
 
 // int main(int argc, char** argv) {
@@ -121,7 +121,7 @@ public:
 
 //     if (parser.getNumberOfSyntaxErrors() == 0) {
 //         MiniToAstProgramVisitor programVisitor;
-//         ast::ProgramPtr p = programVisitor.visit(tree);
+//         jited::ast::ProgramPtr p = programVisitor.visit(tree);
 //         StatementToBlockVisitor c(p);
 //         c.run();
 //     } else {

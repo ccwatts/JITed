@@ -30,7 +30,7 @@
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
 */
-namespace mini {
+namespace jited {
 
 typedef std::shared_ptr<int> IntPtr;
 typedef std::shared_ptr<bool> BoolPtr;
@@ -98,7 +98,7 @@ public:
     // vector is <field name, field type>
     // iterate and add the size of each type
     // i1, i8, i32, structs
-    PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf=NULL);
+    PackedStruct(jited::ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf=NULL);
     ~PackedStruct();
 
     bool has(std::string fieldName);
@@ -119,7 +119,7 @@ public:
 
 
 
-class MiniInterpreter : public ast::ASTVisitor {
+class MiniInterpreter : public jited::ast::ASTVisitor {
 protected:
     bool isBool(std::string eType);
 
@@ -129,81 +129,81 @@ protected:
     PackedStruct* parentStruct;
     std::string lastField;
     std::vector<ValueMap> scopes;
-    std::map<std::string, ast::FunctionPtr> funcs;
+    std::map<std::string, jited::ast::FunctionPtr> funcs;
     // std::map<std::string, StructDescription> structInfo;
-    std::map<std::string, ast::TypeDeclarationPtr> structs; // instances of structs to copy from
-    ast::ProgramPtr program;
+    std::map<std::string, jited::ast::TypeDeclarationPtr> structs; // instances of structs to copy from
+    jited::ast::ProgramPtr program;
 
     TypedValuePtr lookup(std::string name);
 
-    ValueMap bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params);
+    ValueMap bindArgs(std::vector<jited::ast::ExpressionPtr>& args, std::vector<jited::ast::DeclarationPtr>& params);
 
     void resetStruct();
 public:
-    MiniInterpreter(ast::ProgramPtr program);
+    MiniInterpreter(jited::ast::ProgramPtr program);
     ~MiniInterpreter();
 
-    antlrcpp::Any visit(ast::AssignmentStatement* statement);
+    antlrcpp::Any visit(jited::ast::AssignmentStatement* statement);
 
-    antlrcpp::Any visit(ast::BinaryExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::BinaryExpression* expression) override;
 
-    antlrcpp::Any visit(ast::BlockStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::BlockStatement* statement) override;
 
-    antlrcpp::Any visit(ast::BoolType* type) override;
+    antlrcpp::Any visit(jited::ast::BoolType* type) override;
 
-    antlrcpp::Any visit(ast::ConditionalStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::ConditionalStatement* statement) override;
 
-    antlrcpp::Any visit(ast::Declaration* declaration) override;
+    antlrcpp::Any visit(jited::ast::Declaration* declaration) override;
 
-    antlrcpp::Any visit(ast::DeleteStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::DeleteStatement* statement) override;
 
-    antlrcpp::Any visit(ast::DotExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::DotExpression* expression) override;
 
-    antlrcpp::Any visit(ast::FalseExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::FalseExpression* expression) override;
 
-    antlrcpp::Any visit(ast::Function* function) override;
+    antlrcpp::Any visit(jited::ast::Function* function) override;
 
-    antlrcpp::Any visit(ast::IdentifierExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::IdentifierExpression* expression) override;
 
-    antlrcpp::Any visit(ast::IntegerExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::IntegerExpression* expression) override;
 
-    antlrcpp::Any visit(ast::IntType* type) override;
+    antlrcpp::Any visit(jited::ast::IntType* type) override;
 
-    antlrcpp::Any visit(ast::InvocationExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::InvocationExpression* expression) override;
 
-    antlrcpp::Any visit(ast::InvocationStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::InvocationStatement* statement) override;
 
-    antlrcpp::Any visit(ast::LvalueDot* lvalue) override;
+    antlrcpp::Any visit(jited::ast::LvalueDot* lvalue) override;
 
-    antlrcpp::Any visit(ast::LvalueId* lvalue) override;
+    antlrcpp::Any visit(jited::ast::LvalueId* lvalue) override;
 
-    antlrcpp::Any visit(ast::NewExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::NewExpression* expression) override;
 
-    antlrcpp::Any visit(ast::NullExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::NullExpression* expression) override;
 
-    antlrcpp::Any visit(ast::PrintLnStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::PrintLnStatement* statement) override;
 
-    antlrcpp::Any visit(ast::PrintStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::PrintStatement* statement) override;
 
-    antlrcpp::Any visit(ast::Program* program);
+    antlrcpp::Any visit(jited::ast::Program* program);
 
-    antlrcpp::Any visit(ast::ReadExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::ReadExpression* expression) override;
 
-    antlrcpp::Any visit(ast::ReturnEmptyStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::ReturnEmptyStatement* statement) override;
 
-    antlrcpp::Any visit(ast::ReturnStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::ReturnStatement* statement) override;
 
-    antlrcpp::Any visit(ast::StructType* type) override;
+    antlrcpp::Any visit(jited::ast::StructType* type) override;
 
-    antlrcpp::Any visit(ast::TrueExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::TrueExpression* expression) override;
 
-    antlrcpp::Any visit(ast::TypeDeclaration* typeDeclaration) override;
+    antlrcpp::Any visit(jited::ast::TypeDeclaration* typeDeclaration) override;
 
-    antlrcpp::Any visit(ast::UnaryExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::UnaryExpression* expression) override;
 
-    antlrcpp::Any visit(ast::VoidType* type) override;
+    antlrcpp::Any visit(jited::ast::VoidType* type) override;
 
-    antlrcpp::Any visit(ast::WhileStatement* statement) override;
+    antlrcpp::Any visit(jited::ast::WhileStatement* statement) override;
 
     int run();
 };

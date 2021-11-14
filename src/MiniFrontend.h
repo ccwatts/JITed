@@ -2,13 +2,13 @@
 
 #include "MiniToAstVisitors.h"
 #include "ast/program.h"
-namespace mini {
+namespace jited {
 class MiniFrontend {
 private:
     MiniToAstProgramVisitor programVisitor;
 public:
     MiniFrontend();
     
-    ast::ProgramPtr parseFile(char* fname);
+    jited::ast::ProgramPtr parseFile(char* fname);
 };
 }

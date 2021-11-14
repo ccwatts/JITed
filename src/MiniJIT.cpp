@@ -146,8 +146,8 @@ void* ModuleCompiler::getSym(std::string name) {
     }
 }
 
-JIT::JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler) :
-    mini::MiniInterpreter(program),
+JIT::JIT(jited::ast::ProgramPtr program, std::shared_ptr<jited::ast::ASTVisitor> compiler) :
+    jited::MiniInterpreter(program),
     mc(std::move(jited::ModuleCompiler::create())),
     compiler(compiler),
     heatFunction(defaultHeatFunction)
@@ -161,7 +161,7 @@ JIT::JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler) :
 JIT::~JIT() {};
 
 // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
-antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
+antlrcpp::Any JIT::visit(jited::ast::InvocationExpression* expression) {
     // branch based on whether it's compiled already or not
     if (mc->getSym(expression->name)) {
         // int8_t* args = new int8_t[expression->arguments.size()];
@@ -169,10 +169,10 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         std::cout << "running jitted symbol...\n";
         #endif
         
-        std::vector<mini::TypedValue> vals;
+        std::vector<jited::TypedValue> vals;
         int totalSize = 0;
-        for (ast::ExpressionPtr e : expression->arguments) {
-            mini::TypedValue tv = e->accept(this);
+        for (jited::ast::ExpressionPtr e : expression->arguments) {
+            jited::TypedValue tv = e->accept(this);
             if (tv.isStruct()) {
                 totalSize += sizeof(intptr_t) / sizeof(int32_t);
             } else {
@@ -184,13 +184,13 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         int32_t* args = new int32_t[totalSize]();
         // int8_t* args = new int8_t[totalBytes]();
         int currentOffset = 0;
-        for (mini::TypedValue tv : vals) {
-            if (tv.type == ast::IntType::name() || tv.type == ast::BoolType::name()) {
+        for (jited::TypedValue tv : vals) {
+            if (tv.type == jited::ast::IntType::name() || tv.type == jited::ast::BoolType::name()) {
                 int32_t i32 = tv.asI32();
                 args[currentOffset] = i32;
                 currentOffset += 1;
             } else {
-                mini::PackedStruct* ps = tv.asStruct();
+                jited::PackedStruct* ps = tv.asStruct();
                 *((uint8_t**) (args + currentOffset)) = ps->buf;
                 currentOffset += sizeof(intptr_t) / sizeof(int32_t);
             }
@@ -198,22 +198,22 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
         
         std::string returnType = funcs.at(expression->name)->retType->toMiniString();
         antlrcpp::Any retVal;
-        if (returnType == ast::IntType::name()) {
+        if (returnType == jited::ast::IntType::name()) {
             auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             int rawRetVal = fptr(args);
-            retVal = mini::TypedValue(returnType, rawRetVal);
-        } else if (returnType == ast::BoolType::name()) {
+            retVal = jited::TypedValue(returnType, rawRetVal);
+        } else if (returnType == jited::ast::BoolType::name()) {
             auto fptr = (int32_t (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             bool rawRetVal = fptr(args);
-            retVal = mini::TypedValue(returnType, rawRetVal);
-        } else if (returnType == ast::VoidType::name()) {
+            retVal = jited::TypedValue(returnType, rawRetVal);
+        } else if (returnType == jited::ast::VoidType::name()) {
             auto fptr = (void (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             fptr(args);
             retVal = nullptr;
         } else {
             auto fptr = (uint8_t* (*)(int32_t*)) mc->getSym(expression->name + "ENTRY");
             uint8_t* rawRetVal = fptr(args);
-            retVal = mini::TypedValue(returnType, reverseLookup(rawRetVal, returnType));
+            retVal = jited::TypedValue(returnType, reverseLookup(rawRetVal, returnType));
         }
         delete[] args;
 
@@ -232,12 +232,12 @@ antlrcpp::Any JIT::visit(ast::InvocationExpression* expression) {
     }
 }
 
-mini::PackedStruct* JIT::reverseLookup(uint8_t* buf, std::string structName) {
-    if (mini::PackedStruct::lookupTable.count(buf)) {
-        return mini::PackedStruct::lookupTable.at(buf);
+jited::PackedStruct* JIT::reverseLookup(uint8_t* buf, std::string structName) {
+    if (jited::PackedStruct::lookupTable.count(buf)) {
+        return jited::PackedStruct::lookupTable.at(buf);
     } else {
         if (structs.count(structName)) {
-            return new mini::PackedStruct(structs.at(structName), buf);
+            return new jited::PackedStruct(structs.at(structName), buf);
         } else {
             throw std::runtime_error("struct name lookup failed in reverseLookup");
         }
@@ -250,10 +250,10 @@ std::string JIT::structsString() {
     std::ostringstream oss;
 
     for (auto pair : structs) {
-        ast::TypeDeclarationPtr typeDec = pair.second;
+        jited::ast::TypeDeclarationPtr typeDec = pair.second;
         oss << "%struct." << typeDec->name << " = type <{";
         std::string typeList = "";
-        for (ast::DeclarationPtr field : typeDec->fields) {
+        for (jited::ast::DeclarationPtr field : typeDec->fields) {
             typeList += field->type->toString() + ", ";
         }
         if (typeList.length() > 0) {
@@ -266,7 +266,7 @@ std::string JIT::structsString() {
 
 std::string JIT::globalString() {
     std::ostringstream oss;
-    for (ast::DeclarationPtr dec : program->decls) {
+    for (jited::ast::DeclarationPtr dec : program->decls) {
         if (funcs.count(dec->name) == 0) {
             oss << "@" << dec->name << " = external dso_local global " << dec->type->toString() << ", align 4\n";
         }
@@ -286,11 +286,11 @@ std::string JIT::declareString(std::string fname) {
         << "declare i32 @readInt()\n";
 
     for (auto pair : funcs) {
-        ast::FunctionPtr f = pair.second;
+        jited::ast::FunctionPtr f = pair.second;
         if (f->name != fname) {
             oss << "declare " << f->retType->toString() << " @" << f->name << "(";
             std::string paramList = "";
-            for (ast::DeclarationPtr param : f->params) {
+            for (jited::ast::DeclarationPtr param : f->params) {
                 paramList += param->type->toString() + " %" + param->name + ", ";
             }
             if (f->params.size() > 0) {
@@ -326,9 +326,9 @@ std::string JIT::entryFunction(std::string name) {
         int i = 0;
         int ptrStep = sizeof(intptr_t) / sizeof(int32_t);
         std::ostringstream oss;
-        ast::FunctionPtr function = funcs.at(name);
+        jited::ast::FunctionPtr function = funcs.at(name);
         oss << "define " + function->retType->toString() + " @" + function->name + "ENTRY(i32* " + argsName + ") {\nL0:\n";
-        for (ast::DeclarationPtr param : function->params) {
+        for (jited::ast::DeclarationPtr param : function->params) {
             oss << "%" << param->name << "PTR = getelementptr i32, i32* " << argsName << ", i64 " << i << "\n";
             if (param->type->toString() == "i32") {
                 // dereference the i32
@@ -345,7 +345,7 @@ std::string JIT::entryFunction(std::string name) {
         }
 
         std::string paramList = "(";
-        for (ast::DeclarationPtr param : function->params) {
+        for (jited::ast::DeclarationPtr param : function->params) {
             paramList += param->type->toString() + " %" + param->name + ", ";
         }
         if (function->params.size() > 0) {
@@ -372,7 +372,7 @@ std::string JIT::entryFunction(std::string name) {
 void JIT::compileFunction(std::string fname) {
     if (funcs.count(fname)) {
         if (!mc->getSym(fname)) {
-            ast::FunctionPtr f = funcs.at(fname);
+            jited::ast::FunctionPtr f = funcs.at(fname);
             std::string moduleStr = moduleString(fname);
             // #ifdef DEBUGJIT
             // std::cout << moduleStr << std::endl;
@@ -388,9 +388,9 @@ void JIT::makeGlobals() {
     auto &jd = mc->jit->getMainJITDylib();
     for (auto pair : globals) {
         auto mangled = mc->mangler(pair.first);
-        mini::TypedValuePtr tv = pair.second;
-        if (tv->value.is<mini::IntPtr>()) {
-            int* ip = tv->value.as<mini::IntPtr>().get();
+        jited::TypedValuePtr tv = pair.second;
+        if (tv->value.is<jited::IntPtr>()) {
+            int* ip = tv->value.as<jited::IntPtr>().get();
             Error e = jd.define(orc::absoluteSymbols({{
                 mangled,
                 JITEvaluatedSymbol(pointerToJITTargetAddress(ip), JITSymbolFlags::Exported)
@@ -399,8 +399,8 @@ void JIT::makeGlobals() {
                 errs() << e;
                 throw std::runtime_error("error in global definition");
             }
-        } else if (tv->value.is<mini::BoolPtr>()) {
-            bool* bp = tv->value.as<mini::BoolPtr>().get();
+        } else if (tv->value.is<jited::BoolPtr>()) {
+            bool* bp = tv->value.as<jited::BoolPtr>().get();
             Error e = jd.define(orc::absoluteSymbols({{
                 mangled,
                 JITEvaluatedSymbol(pointerToJITTargetAddress(bp), JITSymbolFlags::Exported)
@@ -410,7 +410,7 @@ void JIT::makeGlobals() {
                 throw std::runtime_error("error in global definition");
             }
         } else {
-            mini::PackedStruct* ps = tv->value.as<mini::PackedStruct*>();
+            jited::PackedStruct* ps = tv->value.as<jited::PackedStruct*>();
             Error e = jd.define(orc::absoluteSymbols({{
                 mangled,
                 JITEvaluatedSymbol(pointerToJITTargetAddress(ps), JITSymbolFlags::Exported)
@@ -436,27 +436,4 @@ void JIT::initialize() {
 }
 
 }
-// parse assembly string...?
-
-// int main(int argc, char** argv) {
-//     // if (argc < 3) return 1;
-//     InitializeAllTargetInfos();
-//     InitializeAllTargets();
-//     InitializeAllTargetMCs();
-//     InitializeAllAsmPrinters();
-
-//     if (argc == 1) {
-//         return 0;
-//     }
-
-//     mini::MiniFrontend fe;
-//     ast::ProgramPtr p = fe.parseFile(argv[1]);
-//     if (!p) {
-//         return 1;
-//     }
-//     std::shared_ptr<ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
-//     jited::JIT j(p, compiler);
-//     return j.run();
-// }
-
 

@@ -9,14 +9,14 @@ int main(int argc, char** argv) {
     if (argc == 1) {
         return 0;
     }
-    mini::MiniFrontend fe;
-    ast::ProgramPtr p = fe.parseFile(argv[1]);
+    jited::MiniFrontend fe;
+    jited::ast::ProgramPtr p = fe.parseFile(argv[1]);
     if (!p) {
         return 1;
     }
     minic::StatementToBlockVisitor c(p);
     // c.run();
-    // ast::FunctionPtr f = p->funcs.at(0);
+    // jited::ast::FunctionPtr f = p->funcs.at(0);
     // std::string out = f->accept(&c);
     // std::cout << out;
     for (auto f : p->funcs) {

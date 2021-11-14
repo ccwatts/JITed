@@ -8,6 +8,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 Program::Program(std::vector<TypeDeclarationPtr> types, std::vector<DeclarationPtr> decls, std::vector<FunctionPtr> funcs) :
@@ -21,4 +22,5 @@ Any Program::accept(StatementVisitor* v) {
     return v->visit(this);
 }
 
+}
 }

@@ -6,6 +6,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 Any ASTVisitor::visit(AssignmentStatement* statement) {
@@ -252,4 +253,5 @@ Any StatementVisitor::visit(WhileStatement* statement){
     throw std::runtime_error("Error: Visit function not implemented. (WhileStatement)");
 }
 
+}
 }

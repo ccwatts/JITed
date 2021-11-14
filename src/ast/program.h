@@ -10,6 +10,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 class Program {
@@ -24,4 +25,5 @@ public:
 };
 typedef std::shared_ptr<Program> ProgramPtr;
 
+}
 }

@@ -25,9 +25,9 @@
 #include "MiniInterpreter.h"
 
 using antlrcpp::Any;
-using mini::proxy;
+using jited::proxy;
 
-namespace mini {
+namespace jited {
 
 /*
     Container class for both return values (or lack thereof) and expression evaluation results
@@ -141,11 +141,11 @@ bool TypedValue::isNull() {
 }
 
 std::string TypedValue::toString() {
-    if (type == ast::IntType::name()) {
+    if (type == jited::ast::IntType::name()) {
         return std::to_string(asInt());
-    } else if (type == ast::BoolType::name()) {
+    } else if (type == jited::ast::BoolType::name()) {
         return (asBool()) ? "true" : "false";
-    } else if (type == ast::VoidType::name()) {
+    } else if (type == jited::ast::VoidType::name()) {
         return "void"; // should not be returned from anything...
     } else if (isNull()) {
         return "null";
@@ -171,13 +171,13 @@ std::string TypedValue::toString() {
 // uint8_t* buf;
 std::map<uint8_t*, PackedStruct*> PackedStruct::lookupTable;
 
-PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf) : buf(existingBuf), totalBytes(0) {
+PackedStruct::PackedStruct(jited::ast::TypeDeclarationPtr fieldInfo, uint8_t* existingBuf) : buf(existingBuf), totalBytes(0) {
     const size_t ptrBytes = sizeof(intptr_t) / sizeof(int32_t);
     const size_t i32Bytes = sizeof(int32_t);
     // size_t totalBytes = 0;
 
     // calculate size and offsets
-    for (ast::DeclarationPtr dec : fieldInfo->fields) {
+    for (jited::ast::DeclarationPtr dec : fieldInfo->fields) {
         types[dec->name] = dec->type->toMiniString();
         offsets[dec->name] = totalBytes;
         if (dec->type->toMiniString() == "int" || dec->type->toMiniString() == "bool") {
@@ -203,9 +203,9 @@ PackedStruct::PackedStruct(ast::TypeDeclarationPtr fieldInfo, uint8_t* existingB
         int offset = p.second;
         std::string type = types.at(name);
         if (type == "int") {
-            accessors[name] = std::make_shared<TypedValue>(ast::IntType::name(), (int32_t*) (buf + offset));
+            accessors[name] = std::make_shared<TypedValue>(jited::ast::IntType::name(), (int32_t*) (buf + offset));
         } else if (type == "bool") {
-            accessors[name] = std::make_shared<TypedValue>(ast::BoolType::name(), (int32_t*) (buf + offset));
+            accessors[name] = std::make_shared<TypedValue>(jited::ast::BoolType::name(), (int32_t*) (buf + offset));
         } else {
             accessors[name] = std::make_shared<TypedValue>(type, (PackedStruct*) NULL);
             // accessor only used by interpreter
@@ -282,18 +282,18 @@ void PackedStruct::setMember(std::string fieldName, PackedStruct* member) {
 
 
 
-MiniInterpreter::MiniInterpreter(ast::ProgramPtr program) : program(program), parentStruct(NULL) {
-    for (ast::DeclarationPtr d : program->decls) {
+MiniInterpreter::MiniInterpreter(jited::ast::ProgramPtr program) : program(program), parentStruct(NULL) {
+    for (jited::ast::DeclarationPtr d : program->decls) {
         // get the globals
         TypedValuePtr decRes = d->accept(this);
         globals.insert({d->name, decRes});
     }
 
-    for (ast::TypeDeclarationPtr td : program->types) {
+    for (jited::ast::TypeDeclarationPtr td : program->types) {
         structs.insert({td->name, td});
     }
 
-    for (ast::FunctionPtr f : program->funcs) {
+    for (jited::ast::FunctionPtr f : program->funcs) {
         funcs.insert({f->name, f});
     };
 };
@@ -305,15 +305,15 @@ void MiniInterpreter::resetStruct() {
 }
 
 bool MiniInterpreter::isBool(std::string eType) {
-    return eType == typeid(ast::TrueExpression).name() || eType == typeid(ast::FalseExpression).name();
+    return eType == typeid(jited::ast::TrueExpression).name() || eType == typeid(jited::ast::FalseExpression).name();
 }
 
 bool MiniInterpreter::getBoolState(TypedValue& tv) {
     if (!tv.initialized) {
         throw std::runtime_error("use of uninitialized value");
-    } else if (tv.type == ast::IntType::name()) {
+    } else if (tv.type == jited::ast::IntType::name()) {
         return tv.asInt();
-    } else if (tv.type == ast::BoolType::name()) {
+    } else if (tv.type == jited::ast::BoolType::name()) {
         return tv.asBool();
     } else {
         throw std::runtime_error("error: cannot extract bool state of non-int/bool");
@@ -333,7 +333,7 @@ TypedValuePtr MiniInterpreter::lookup(std::string name) {
 }
 
 // TODO WATCH THIS, THIS MAY NEED TO CHANGE + SCOPES IN GENERAL MAY NEED TO...
-ValueMap MiniInterpreter::bindArgs(std::vector<ast::ExpressionPtr>& args, std::vector<ast::DeclarationPtr>& params) {
+ValueMap MiniInterpreter::bindArgs(std::vector<jited::ast::ExpressionPtr>& args, std::vector<jited::ast::DeclarationPtr>& params) {
     ValueMap newScope;
     if (params.size() != args.size()) {
         throw std::runtime_error("arg and param list were not the same length");
@@ -352,7 +352,7 @@ ValueMap MiniInterpreter::bindArgs(std::vector<ast::ExpressionPtr>& args, std::v
     return newScope;
 }
 
-Any MiniInterpreter::visit(ast::AssignmentStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::AssignmentStatement* statement) {
     TypedValue source = statement->source->accept(this);
 
     resetStruct();
@@ -369,7 +369,7 @@ Any MiniInterpreter::visit(ast::AssignmentStatement* statement) {
 }
 
 // this is gonna be a monster
-Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::BinaryExpression* expression) {
     // holy shit this is a mess...
     TypedValue lft = expression->left->accept(this), rht = expression->right->accept(this);
     if (!lft.initialized || !rht.initialized) {
@@ -383,62 +383,62 @@ Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
     */
 
     // these are done in advance since the operand types aren't constrained
-    if (expression->op == ast::BinaryExpression::Operator::EQ) {
+    if (expression->op == jited::ast::BinaryExpression::Operator::EQ) {
         if (lft.isStruct() && rht.isStruct()) {
-            return TypedValue(ast::BoolType::name(), lft.as<PackedStruct*>() == rht.as<PackedStruct*>());
+            return TypedValue(jited::ast::BoolType::name(), lft.as<PackedStruct*>() == rht.as<PackedStruct*>());
         } else if (lft.type != rht.type) {
-            return TypedValue(ast::BoolType::name(), false);
-        } else if (lft.type == ast::IntType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.asInt() == rht.asInt());
-        } else if (lft.type == ast::BoolType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.asBool() == rht.asBool());
+            return TypedValue(jited::ast::BoolType::name(), false);
+        } else if (lft.type == jited::ast::IntType::name()) {
+            return TypedValue(jited::ast::BoolType::name(), lft.asInt() == rht.asInt());
+        } else if (lft.type == jited::ast::BoolType::name()) {
+            return TypedValue(jited::ast::BoolType::name(), lft.asBool() == rht.asBool());
         } else {
-            return TypedValue(ast::BoolType::name(), false);
+            return TypedValue(jited::ast::BoolType::name(), false);
             // throw std::runtime_error("struct comparison unimplemented");
         }
-    } else if (expression->op == ast::BinaryExpression::Operator::NE) {
+    } else if (expression->op == jited::ast::BinaryExpression::Operator::NE) {
         if (lft.isStruct() && rht.isStruct()) {
-            return TypedValue(ast::BoolType::name(), lft.as<PackedStruct*>() != rht.as<PackedStruct*>());
+            return TypedValue(jited::ast::BoolType::name(), lft.as<PackedStruct*>() != rht.as<PackedStruct*>());
         } else if (lft.type != rht.type) {
-            return TypedValue(ast::BoolType::name(), true);
-        } else if (lft.type == ast::IntType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.asInt() != rht.asInt());
-        } else if (lft.type == ast::BoolType::name()) {
-            return TypedValue(ast::BoolType::name(), lft.asBool() != rht.asBool());
+            return TypedValue(jited::ast::BoolType::name(), true);
+        } else if (lft.type == jited::ast::IntType::name()) {
+            return TypedValue(jited::ast::BoolType::name(), lft.asInt() != rht.asInt());
+        } else if (lft.type == jited::ast::BoolType::name()) {
+            return TypedValue(jited::ast::BoolType::name(), lft.asBool() != rht.asBool());
         } else {
-            return TypedValue(ast::BoolType::name(), true); // ??
+            return TypedValue(jited::ast::BoolType::name(), true); // ??
         }
     }
 
-    if (lft.type == ast::IntType::name() && rht.type == ast::IntType::name()) {
+    if (lft.type == jited::ast::IntType::name() && rht.type == jited::ast::IntType::name()) {
         int lftVal = lft.asInt(), rhtVal = rht.asInt();
         switch (expression->op) {
-            case ast::BinaryExpression::Operator::TIMES:
-                return TypedValue(ast::IntType::name(), lftVal * rhtVal);
-            case ast::BinaryExpression::Operator::DIVIDE:
-                return TypedValue(ast::IntType::name(), lftVal / rhtVal);
-            case ast::BinaryExpression::Operator::PLUS:
-                return TypedValue(ast::IntType::name(), lftVal + rhtVal);
-            case ast::BinaryExpression::Operator::MINUS:
-                return TypedValue(ast::IntType::name(), lftVal - rhtVal);
-            case ast::BinaryExpression::Operator::LT:
-                return TypedValue(ast::BoolType::name(), lftVal < rhtVal);
-            case ast::BinaryExpression::Operator::LE:
-                return TypedValue(ast::BoolType::name(), lftVal <= rhtVal);
-            case ast::BinaryExpression::Operator::GT:
-                return TypedValue(ast::BoolType::name(), lftVal > rhtVal);
-            case ast::BinaryExpression::Operator::GE:
-                return TypedValue(ast::BoolType::name(), lftVal >= rhtVal);
+            case jited::ast::BinaryExpression::Operator::TIMES:
+                return TypedValue(jited::ast::IntType::name(), lftVal * rhtVal);
+            case jited::ast::BinaryExpression::Operator::DIVIDE:
+                return TypedValue(jited::ast::IntType::name(), lftVal / rhtVal);
+            case jited::ast::BinaryExpression::Operator::PLUS:
+                return TypedValue(jited::ast::IntType::name(), lftVal + rhtVal);
+            case jited::ast::BinaryExpression::Operator::MINUS:
+                return TypedValue(jited::ast::IntType::name(), lftVal - rhtVal);
+            case jited::ast::BinaryExpression::Operator::LT:
+                return TypedValue(jited::ast::BoolType::name(), lftVal < rhtVal);
+            case jited::ast::BinaryExpression::Operator::LE:
+                return TypedValue(jited::ast::BoolType::name(), lftVal <= rhtVal);
+            case jited::ast::BinaryExpression::Operator::GT:
+                return TypedValue(jited::ast::BoolType::name(), lftVal > rhtVal);
+            case jited::ast::BinaryExpression::Operator::GE:
+                return TypedValue(jited::ast::BoolType::name(), lftVal >= rhtVal);
             default:
                 break;
         }
-    } else if (lft.type == ast::BoolType::name() && rht.type == ast::BoolType::name()) {
+    } else if (lft.type == jited::ast::BoolType::name() && rht.type == jited::ast::BoolType::name()) {
         bool lftVal = lft.asBool(), rhtVal = rht.asBool();
         switch (expression->op) {
-            case ast::BinaryExpression::Operator::AND:
-                return TypedValue(ast::BoolType::name(), lftVal && rhtVal);
-            case ast::BinaryExpression::Operator::OR:
-                return TypedValue(ast::BoolType::name(), lftVal || rhtVal);
+            case jited::ast::BinaryExpression::Operator::AND:
+                return TypedValue(jited::ast::BoolType::name(), lftVal && rhtVal);
+            case jited::ast::BinaryExpression::Operator::OR:
+                return TypedValue(jited::ast::BoolType::name(), lftVal || rhtVal);
             default:
                 break;
         }
@@ -447,8 +447,8 @@ Any MiniInterpreter::visit(ast::BinaryExpression* expression) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::BlockStatement* statement) {
-    for (ast::StatementPtr s : statement->statements) {
+Any MiniInterpreter::visit(jited::ast::BlockStatement* statement) {
+    for (jited::ast::StatementPtr s : statement->statements) {
         Any result = s->accept(this);
         if (result.is<TypedValue>()) { // add check -- are we in a function?
             return result;
@@ -457,11 +457,11 @@ Any MiniInterpreter::visit(ast::BlockStatement* statement) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::BoolType* type) {
-    return ast::BoolType::name();
+Any MiniInterpreter::visit(jited::ast::BoolType* type) {
+    return jited::ast::BoolType::name();
 }
 
-Any MiniInterpreter::visit(ast::ConditionalStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::ConditionalStatement* statement) {
     TypedValue guard = statement->guard->accept(this);
 
     if (getBoolState(guard)) {
@@ -471,13 +471,13 @@ Any MiniInterpreter::visit(ast::ConditionalStatement* statement) {
     }
 }
 
-Any MiniInterpreter::visit(ast::Declaration* declaration) {
+Any MiniInterpreter::visit(jited::ast::Declaration* declaration) {
     std::string typeStr = declaration->type->accept(this);
-    if (typeStr == ast::IntType::name()) {
+    if (typeStr == jited::ast::IntType::name()) {
         return std::make_shared<TypedValue>(typeStr, std::make_shared<int>(0), false);
-    } else if (typeStr == ast::BoolType::name()) {
+    } else if (typeStr == jited::ast::BoolType::name()) {
         return std::make_shared<TypedValue>(typeStr, false, false);
-    } else if (typeStr == ast::VoidType::name()) {
+    } else if (typeStr == jited::ast::VoidType::name()) {
         std::cerr << "error: cannot instantiate a variable with void type\n";
         std::exit(1);
     } else {
@@ -486,13 +486,13 @@ Any MiniInterpreter::visit(ast::Declaration* declaration) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::DeleteStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::DeleteStatement* statement) {
     TypedValue toDelete = statement->expression->accept(this);
     delete toDelete.as<PackedStruct*>();
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::DotExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::DotExpression* expression) {
     TypedValue left = expression->left->accept(this);
     if (!(left.isStruct())) {
         throw std::runtime_error(std::to_string(expression->line) + ": invalid struct for dot expression");
@@ -513,12 +513,12 @@ Any MiniInterpreter::visit(ast::DotExpression* expression) {
     }
 }
 
-Any MiniInterpreter::visit(ast::FalseExpression* expression) {
-    return TypedValue(ast::BoolType::name(), false);
+Any MiniInterpreter::visit(jited::ast::FalseExpression* expression) {
+    return TypedValue(jited::ast::BoolType::name(), false);
 }
 
-Any MiniInterpreter::visit(ast::Function* function) {
-    for (ast::DeclarationPtr local : function->locals) {
+Any MiniInterpreter::visit(jited::ast::Function* function) {
+    for (jited::ast::DeclarationPtr local : function->locals) {
         TypedValuePtr evaluated = local->accept(this);
         // evaluated->initialized = true; //unsure... TODO
         // scopes.back().insert({local->name, evaluated});
@@ -527,7 +527,7 @@ Any MiniInterpreter::visit(ast::Function* function) {
     return function->body->accept(this);
 }
 
-Any MiniInterpreter::visit(ast::IdentifierExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::IdentifierExpression* expression) {
     TypedValuePtr p = lookup(expression->id);
     if (p) {
         return *p;
@@ -535,20 +535,20 @@ Any MiniInterpreter::visit(ast::IdentifierExpression* expression) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::IntegerExpression* expression) {
-    return TypedValue(ast::IntType::name(), expression->value);
+Any MiniInterpreter::visit(jited::ast::IntegerExpression* expression) {
+    return TypedValue(jited::ast::IntType::name(), expression->value);
 }
 
-Any MiniInterpreter::visit(ast::IntType* type) {
-    return ast::IntType::name();
+Any MiniInterpreter::visit(jited::ast::IntType* type) {
+    return jited::ast::IntType::name();
 }
 
-Any MiniInterpreter::visit(ast::InvocationExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::InvocationExpression* expression) {
     /* we may need more in-depth scoping rules than this, fwiw */
     if (funcs.count(expression->name) == 0) {
         throw std::runtime_error(std::to_string(expression->line) + ": call to undefined function");
     }
-    ast::FunctionPtr f = funcs.at(expression->name);
+    jited::ast::FunctionPtr f = funcs.at(expression->name);
 
     ValueMap s = bindArgs(expression->arguments, f->params);
     scopes.push_back(s);
@@ -560,14 +560,14 @@ Any MiniInterpreter::visit(ast::InvocationExpression* expression) {
     return retVal;
 }
 
-Any MiniInterpreter::visit(ast::InvocationStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::InvocationStatement* statement) {
     // possible that this'll need a check to make sure it's a fn within
     // but the parser should rule that out, probably.
     Any retVal = statement->expression->accept(this);
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::LvalueDot* lvalue) {
+Any MiniInterpreter::visit(jited::ast::LvalueDot* lvalue) {
     TypedValue left = lvalue->left->accept(this);
     if (!(left.isStruct())) {
         throw std::runtime_error(std::to_string(lvalue->line) + ": invalid lvalue for dot expression");
@@ -590,11 +590,11 @@ Any MiniInterpreter::visit(ast::LvalueDot* lvalue) {
     }
 }
 
-Any MiniInterpreter::visit(ast::LvalueId* lvalue) {
+Any MiniInterpreter::visit(jited::ast::LvalueId* lvalue) {
     return lookup(lvalue->id);
 }
 
-Any MiniInterpreter::visit(ast::NewExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::NewExpression* expression) {
     if (structs.count(expression->id)) {
         // return TypedValue(expression->id, new ValueMap(structs.at(expression->id)), true);
         return TypedValue(expression->id, new PackedStruct(structs.at(expression->id)));
@@ -603,11 +603,11 @@ Any MiniInterpreter::visit(ast::NewExpression* expression) {
     }
 }
 
-Any MiniInterpreter::visit(ast::NullExpression* expression) {
-    return TypedValue(ast::Type::nullName(), (PackedStruct*) NULL);
+Any MiniInterpreter::visit(jited::ast::NullExpression* expression) {
+    return TypedValue(jited::ast::Type::nullName(), (PackedStruct*) NULL);
 }
 
-Any MiniInterpreter::visit(ast::PrintLnStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::PrintLnStatement* statement) {
     TypedValue result = statement->expression->accept(this);
     if (!result.initialized) {
         throw std::runtime_error("use of uninitialized value");
@@ -616,7 +616,7 @@ Any MiniInterpreter::visit(ast::PrintLnStatement* statement) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::PrintStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::PrintStatement* statement) {
     TypedValue result = statement->expression->accept(this);
     if (!result.initialized) {
         throw std::runtime_error("use of uninitialized value");
@@ -625,7 +625,7 @@ Any MiniInterpreter::visit(ast::PrintStatement* statement) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::Program* program) {
+Any MiniInterpreter::visit(jited::ast::Program* program) {
     if (program != this->program.get()) {
         std::cerr << "error: interpreter called on different program than initialized with\n";
         return 1;
@@ -637,20 +637,20 @@ Any MiniInterpreter::visit(ast::Program* program) {
     structs.clear();
 
     scopes.push_back(ValueMap()); // scope for main
-    for (ast::DeclarationPtr d : program->decls) {
+    for (jited::ast::DeclarationPtr d : program->decls) {
         // get the globals
         TypedValuePtr decRes = d->accept(this);
         globals.insert({d->name, decRes});
     }
 
-    for (ast::TypeDeclarationPtr td : program->types) {
+    for (jited::ast::TypeDeclarationPtr td : program->types) {
         // structs.insert({td->name, td->accept(this)});
         structs.insert({td->name, td});
     }
 
     // check to see if main actually returned something?
-    ast::FunctionPtr mainFn = nullptr;
-    for (ast::FunctionPtr f : program->funcs) {
+    jited::ast::FunctionPtr mainFn = nullptr;
+    for (jited::ast::FunctionPtr f : program->funcs) {
         if (f->name == "main") {
             mainFn = f;
         }
@@ -662,7 +662,7 @@ Any MiniInterpreter::visit(ast::Program* program) {
     //     return -1;
     // }
 
-    // ast::FunctionPtr mainFn = funcs.at("main");
+    // jited::ast::FunctionPtr mainFn = funcs.at("main");
 
 
     Any result = mainFn->accept(this);
@@ -671,7 +671,7 @@ Any MiniInterpreter::visit(ast::Program* program) {
         return 1;
     }
     TypedValue retVal = result.as<TypedValue>();
-    if (retVal.type != ast::IntType::name()) {
+    if (retVal.type != jited::ast::IntType::name()) {
         std::cerr << "error: main did not return an int\n";
         return 1;
     } else {
@@ -680,37 +680,37 @@ Any MiniInterpreter::visit(ast::Program* program) {
     return 1;
 }
 
-Any MiniInterpreter::visit(ast::ReadExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::ReadExpression* expression) {
     int val;
     std::cin >> val;
     if (std::cin.fail()) {
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        return TypedValue(ast::IntType::name(), 0);
+        return TypedValue(jited::ast::IntType::name(), 0);
     } else {
-        return TypedValue(ast::IntType::name(), val);
+        return TypedValue(jited::ast::IntType::name(), val);
     }
 }
 
-Any MiniInterpreter::visit(ast::ReturnEmptyStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::ReturnEmptyStatement* statement) {
     // feels strange for TypedValue to contain Void, but it's distinct from not returning anything
     // TypedValue is mostly to indicate return values or expression results
-    return TypedValue(ast::VoidType::name(), nullptr);
+    return TypedValue(jited::ast::VoidType::name(), nullptr);
 }
 
-Any MiniInterpreter::visit(ast::ReturnStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::ReturnStatement* statement) {
     return statement->expression->accept(this);
 }
 
-Any MiniInterpreter::visit(ast::StructType* type) {
+Any MiniInterpreter::visit(jited::ast::StructType* type) {
     return type->name();
 }
 
-Any MiniInterpreter::visit(ast::TrueExpression* expression) {
-    return TypedValue(ast::BoolType::name(), true);
+Any MiniInterpreter::visit(jited::ast::TrueExpression* expression) {
+    return TypedValue(jited::ast::BoolType::name(), true);
 }
 
-Any MiniInterpreter::visit(ast::TypeDeclaration* typeDeclaration) {
+Any MiniInterpreter::visit(jited::ast::TypeDeclaration* typeDeclaration) {
     // ValueMap m;
     // for (auto dec : typeDeclaration->fields) {
     //     m.insert({dec->name, dec->accept(this)});
@@ -719,24 +719,24 @@ Any MiniInterpreter::visit(ast::TypeDeclaration* typeDeclaration) {
     return nullptr;
 }
 
-Any MiniInterpreter::visit(ast::UnaryExpression* expression) {
+Any MiniInterpreter::visit(jited::ast::UnaryExpression* expression) {
     TypedValue operand = expression->operand->accept(this);
     if (!operand.initialized) {
         throw std::runtime_error("use of uninitialized value");
     }
 
-    if (expression->op == ast::UnaryExpression::NOT && operand.type == ast::BoolType::name()) {
+    if (expression->op == jited::ast::UnaryExpression::NOT && operand.type == jited::ast::BoolType::name()) {
         return TypedValue(operand.type, !operand.asBool());
-    } else if (expression->op == ast::UnaryExpression::MINUS && operand.type == ast::IntType::name()) {
+    } else if (expression->op == jited::ast::UnaryExpression::MINUS && operand.type == jited::ast::IntType::name()) {
         return TypedValue(operand.type, -operand.asInt());
     }
 }
 
-Any MiniInterpreter::visit(ast::VoidType* type) {
-    return ast::VoidType::name();
+Any MiniInterpreter::visit(jited::ast::VoidType* type) {
+    return jited::ast::VoidType::name();
 }
 
-Any MiniInterpreter::visit(ast::WhileStatement* statement) {
+Any MiniInterpreter::visit(jited::ast::WhileStatement* statement) {
     TypedValue guard = statement->guard->accept(this);
     while (getBoolState(guard)) {
         Any result = statement->body->accept(this);

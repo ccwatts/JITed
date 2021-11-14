@@ -20,12 +20,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    mini::MiniFrontend fe;
-    ast::ProgramPtr p = fe.parseFile(argv[1]);
+    jited::MiniFrontend fe;
+    jited::ast::ProgramPtr p = fe.parseFile(argv[1]);
     if (!p) {
         return 1;
     }
-    std::shared_ptr<ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
+    std::shared_ptr<jited::ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
     jited::JIT::initialize();
     jited::JIT j(p, compiler);
     // j.setHeatFunction(customHeat);

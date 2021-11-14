@@ -8,6 +8,7 @@
 
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 Expression::Expression(int line) : line(line) {};
@@ -133,4 +134,5 @@ UnaryExpression::UnaryExpression(int line, std::string ops, ExpressionPtr operan
 Any UnaryExpression::accept(ASTVisitor* v) { return v->visit(this); };
 Any UnaryExpression::accept(ExpressionVisitor* v) { return v->visit(this); };
 
+}
 }

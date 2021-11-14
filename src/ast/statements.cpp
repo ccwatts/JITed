@@ -9,6 +9,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 Statement::Statement(int line) : line(line) {};
@@ -102,4 +103,5 @@ WhileStatement::WhileStatement(int line, ExpressionPtr guard, StatementPtr body)
 Any WhileStatement::accept(ASTVisitor* v) { return v->visit(this); }
 Any WhileStatement::accept(StatementVisitor* v) { return v->visit(this); }
 
+}
 }

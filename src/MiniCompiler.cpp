@@ -25,7 +25,7 @@
 // #include "tl/values.h"
 // #include "tl/block.h"
 using antlrcpp::Any;
-using mini::proxy;
+using jited::proxy;
 namespace minic {
 
 template <typename T>
@@ -34,31 +34,31 @@ Any ExpressionToValueVisitor::proxy_val(std::shared_ptr<T> from) {
     return antlrcpp::Any(proxied);
 }
 
-BinaryInstruction::Operator ExpressionToValueVisitor::convertBop(ast::BinaryExpression::Operator op) {
+BinaryInstruction::Operator ExpressionToValueVisitor::convertBop(jited::ast::BinaryExpression::Operator op) {
     switch (op) {
-        case ast::BinaryExpression::Operator::TIMES:
+        case jited::ast::BinaryExpression::Operator::TIMES:
             return BinaryInstruction::Operator::MUL;
-        case ast::BinaryExpression::Operator::DIVIDE:
+        case jited::ast::BinaryExpression::Operator::DIVIDE:
             return BinaryInstruction::Operator::DIV;
-        case ast::BinaryExpression::Operator::PLUS:
+        case jited::ast::BinaryExpression::Operator::PLUS:
             return BinaryInstruction::Operator::ADD;
-        case ast::BinaryExpression::Operator::MINUS:
+        case jited::ast::BinaryExpression::Operator::MINUS:
             return BinaryInstruction::Operator::SUB;
-        case ast::BinaryExpression::Operator::LT:
+        case jited::ast::BinaryExpression::Operator::LT:
             return BinaryInstruction::Operator::LT;
-        case ast::BinaryExpression::Operator::GT:
+        case jited::ast::BinaryExpression::Operator::GT:
             return BinaryInstruction::Operator::GT;
-        case ast::BinaryExpression::Operator::LE:
+        case jited::ast::BinaryExpression::Operator::LE:
             return BinaryInstruction::Operator::LE;
-        case ast::BinaryExpression::Operator::GE:
+        case jited::ast::BinaryExpression::Operator::GE:
             return BinaryInstruction::Operator::GE;
-        case ast::BinaryExpression::Operator::EQ:
+        case jited::ast::BinaryExpression::Operator::EQ:
             return BinaryInstruction::Operator::EQ;
-        case ast::BinaryExpression::Operator::NE:
+        case jited::ast::BinaryExpression::Operator::NE:
             return BinaryInstruction::Operator::NE;
-        case ast::BinaryExpression::Operator::AND:
+        case jited::ast::BinaryExpression::Operator::AND:
             return BinaryInstruction::Operator::AND;
-        case ast::BinaryExpression::Operator::OR:
+        case jited::ast::BinaryExpression::Operator::OR:
             return BinaryInstruction::Operator::OR;
         default:
             throw std::runtime_error("invalid bop in convertBop");
@@ -68,7 +68,7 @@ BinaryInstruction::Operator ExpressionToValueVisitor::convertBop(ast::BinaryExpr
 ExpressionToValueVisitor::ExpressionToValueVisitor() : current(nullptr) {};
 ExpressionToValueVisitor::ExpressionToValueVisitor(BlockPtr current, std::map<std::string, StructInfoTable>* structTable,
                         std::map<std::string, std::string>* locals, std::map<std::string, std::string>* globals,
-                        std::map<std::string, ast::FunctionPtr>* functions) :
+                        std::map<std::string, jited::ast::FunctionPtr>* functions) :
     current(current), structTable(structTable), locals(locals), globals(globals), functions(functions) {}; 
 
 ValuePtr ExpressionToValueVisitor::zext(ValuePtr v) {
@@ -110,7 +110,7 @@ std::string ExpressionToValueVisitor::structName(std::string structType) {
     }
 }
 
-Any ExpressionToValueVisitor::visit(ast::BinaryExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::BinaryExpression* expression) {
     ValuePtr left = expression->left->accept(this);
     ValuePtr right = expression->right->accept(this);
 
@@ -120,21 +120,21 @@ Any ExpressionToValueVisitor::visit(ast::BinaryExpression* expression) {
     RegisterPtr res;
     InstructionPtr inst;
     switch (expression->op) {
-        case ast::BinaryExpression::Operator::TIMES:
-        case ast::BinaryExpression::Operator::DIVIDE:
-        case ast::BinaryExpression::Operator::PLUS:
-        case ast::BinaryExpression::Operator::MINUS:
-        case ast::BinaryExpression::Operator::AND:
-        case ast::BinaryExpression::Operator::OR:
+        case jited::ast::BinaryExpression::Operator::TIMES:
+        case jited::ast::BinaryExpression::Operator::DIVIDE:
+        case jited::ast::BinaryExpression::Operator::PLUS:
+        case jited::ast::BinaryExpression::Operator::MINUS:
+        case jited::ast::BinaryExpression::Operator::AND:
+        case jited::ast::BinaryExpression::Operator::OR:
             res = Register::get("i32");
             break;
 
-        case ast::BinaryExpression::Operator::LT:
-        case ast::BinaryExpression::Operator::GT:
-        case ast::BinaryExpression::Operator::LE:
-        case ast::BinaryExpression::Operator::GE:
-        case ast::BinaryExpression::Operator::EQ:
-        case ast::BinaryExpression::Operator::NE:
+        case jited::ast::BinaryExpression::Operator::LT:
+        case jited::ast::BinaryExpression::Operator::GT:
+        case jited::ast::BinaryExpression::Operator::LE:
+        case jited::ast::BinaryExpression::Operator::GE:
+        case jited::ast::BinaryExpression::Operator::EQ:
+        case jited::ast::BinaryExpression::Operator::NE:
             res = Register::get("i1");
             break;
     }
@@ -144,7 +144,7 @@ Any ExpressionToValueVisitor::visit(ast::BinaryExpression* expression) {
     return proxy_val<Register>(res);
 }
 
-Any ExpressionToValueVisitor::visit(ast::DotExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::DotExpression* expression) {
     ValuePtr left;
     RegisterPtr reg1, reg2;
     InstructionPtr getInstr, loadInstr;
@@ -165,11 +165,11 @@ Any ExpressionToValueVisitor::visit(ast::DotExpression* expression) {
     return proxy_val<Register>(reg2);
 }
 
-Any ExpressionToValueVisitor::visit(ast::FalseExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::FalseExpression* expression) {
     return proxy_val<Immediate>(Immediate::get(0));
 }
 
-Any ExpressionToValueVisitor::visit(ast::IdentifierExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::IdentifierExpression* expression) {
     ValuePtr reg;
     if (locals->count(expression->id)) {
         reg = this->current->readVar(expression->id);
@@ -187,21 +187,21 @@ Any ExpressionToValueVisitor::visit(ast::IdentifierExpression* expression) {
     return proxy_val<Value>(reg);
 }
 
-Any ExpressionToValueVisitor::visit(ast::IntegerExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::IntegerExpression* expression) {
     return proxy_val<Immediate>(Immediate::get(expression->value));
 }
 
-Any ExpressionToValueVisitor::visit(ast::InvocationExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::InvocationExpression* expression) {
     std::vector<std::string> args;
     Values argVals;
 
-    ast::FunctionPtr fn = functions->at(expression->name);
+    jited::ast::FunctionPtr fn = functions->at(expression->name);
     std::string retType = globals->at(expression->name);
 
     Values values;
     for (int i = 0; i < expression->arguments.size(); ++i) {
-        ast::ExpressionPtr arg = expression->arguments.at(i);
-        ast::TypePtr paramType = fn->params.at(i)->type;
+        jited::ast::ExpressionPtr arg = expression->arguments.at(i);
+        jited::ast::TypePtr paramType = fn->params.at(i)->type;
         ValuePtr u = arg->accept(this);
         values.push_back(u);
         if (u->isNull()) {
@@ -224,7 +224,7 @@ Any ExpressionToValueVisitor::visit(ast::InvocationExpression* expression) {
     return proxy_val<Register>(reg);
 }
 
-Any ExpressionToValueVisitor::visit(ast::LvalueDot* lvalue) {
+Any ExpressionToValueVisitor::visit(jited::ast::LvalueDot* lvalue) {
     ValuePtr left = lvalue->left->accept(this);
     auto& structRecord = structTable->at(structName(left->typeStr())).at(lvalue->id);
     int offset = structRecord.second;
@@ -237,7 +237,7 @@ Any ExpressionToValueVisitor::visit(ast::LvalueDot* lvalue) {
     return proxy_val<Register>(reg);
 }
 
-Any ExpressionToValueVisitor::visit(ast::LvalueId* lvalue) {
+Any ExpressionToValueVisitor::visit(jited::ast::LvalueId* lvalue) {
     std::string idType;
     if (locals->count(lvalue->id)) {
         idType = locals->at(lvalue->id);
@@ -247,7 +247,7 @@ Any ExpressionToValueVisitor::visit(ast::LvalueId* lvalue) {
     return proxy_val<Register>(Register::get(idType));
 }
 
-Any ExpressionToValueVisitor::visit(ast::NewExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::NewExpression* expression) {
     RegisterPtr call = Register::get();
     RegisterPtr cast = Register::get("%struct." + expression->id + "*");
     InstructionPtr callInstr, castInstr;
@@ -262,32 +262,32 @@ Any ExpressionToValueVisitor::visit(ast::NewExpression* expression) {
     return proxy_val<Register>(cast);
 }
 
-Any ExpressionToValueVisitor::visit(ast::NullExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::NullExpression* expression) {
     return proxy_val<NullValue>(NullValue::get());
 }
 
-Any ExpressionToValueVisitor::visit(ast::ReadExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::ReadExpression* expression) {
     RegisterPtr reg = Register::get("i32");
     InstructionPtr call = std::make_shared<InvocationInstruction>(reg, Values(), "i32", "readInt");
     this->current->addInstruction(call);
     return proxy_val<Register>(reg);
 }
 
-Any ExpressionToValueVisitor::visit(ast::TrueExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::TrueExpression* expression) {
     return proxy_val<Immediate>(Immediate::get(1));
 }
 
-Any ExpressionToValueVisitor::visit(ast::UnaryExpression* expression) {
+Any ExpressionToValueVisitor::visit(jited::ast::UnaryExpression* expression) {
     ValuePtr opVal = expression->operand->accept(this);
     opVal = zext(opVal);
 
     InstructionPtr inst;
     RegisterPtr reg = Register::get("i32");
     switch (expression->op) {
-        case ast::UnaryExpression::Operator::NOT:
+        case jited::ast::UnaryExpression::Operator::NOT:
             inst = std::make_shared<BinaryInstruction>(BinaryInstruction::Operator::XOR, reg, Immediate::get(1), opVal);
             break;
-        case ast::UnaryExpression::Operator::MINUS:
+        case jited::ast::UnaryExpression::Operator::MINUS:
             inst = std::make_shared<BinaryInstruction>(BinaryInstruction::Operator::SUB, reg, Immediate::get(0), opVal);
             break;
     }
@@ -323,18 +323,18 @@ void StatementToBlockVisitor::setCurrent(BlockPtr newCurrent) {
     this->current = newCurrent;
 }
 
-bool StatementToBlockVisitor::isStruct(ast::TypePtr type) {
+bool StatementToBlockVisitor::isStruct(jited::ast::TypePtr type) {
     return type->toString().at(0) == '%';
 }
 
-void StatementToBlockVisitor::processTypedec(ast::TypeDeclarationPtr typeDec) {
+void StatementToBlockVisitor::processTypedec(jited::ast::TypeDeclarationPtr typeDec) {
     StructInfoTable structMap;
     int i = 0;
     std::ostringstream oss;
     #ifdef PRINTMETA
     oss << "%struct." << typeDec->name << " = type {";
     #endif
-    for (ast::DeclarationPtr field : typeDec->fields) {
+    for (jited::ast::DeclarationPtr field : typeDec->fields) {
         structMap.insert({field->name, {field->type->toString(), i++}});
         oss << field->type->toString() << ", ";
     }
@@ -347,11 +347,11 @@ void StatementToBlockVisitor::processTypedec(ast::TypeDeclarationPtr typeDec) {
     structTable.insert({typeDec->name, structMap});
 }
 
-void StatementToBlockVisitor::processGlobals(ast::DeclarationPtr declaration) {
+void StatementToBlockVisitor::processGlobals(jited::ast::DeclarationPtr declaration) {
     std::string initialValue = "i32 0";
     std::string type = declaration->type->toString();
     if (isStruct(declaration->type)) {
-        ast::StructTypePtr structType = std::static_pointer_cast<ast::StructType>(declaration->type);
+        jited::ast::StructTypePtr structType = std::static_pointer_cast<jited::ast::StructType>(declaration->type);
         initialValue = structType->toString() + " null";
     }
     globals.insert({declaration->name, type});
@@ -359,10 +359,10 @@ void StatementToBlockVisitor::processGlobals(ast::DeclarationPtr declaration) {
     // std::cout << "@" << declaration->name << " = common global " << initialValue << ", align 4\n";
 }
 
-void StatementToBlockVisitor::processFunctionHeader(ast::Function* function) {
+void StatementToBlockVisitor::processFunctionHeader(jited::ast::Function* function) {
     returnType = function->retType->toString();
     std::string header = "define " + returnType + " @" + function->name + "(";
-    for (ast::DeclarationPtr param : function->params) {
+    for (jited::ast::DeclarationPtr param : function->params) {
         header += param->type->toString() + " %" + param->name + ", ";
     }
     // #ifdef PRINTMETA
@@ -387,25 +387,25 @@ BlockPtr StatementToBlockVisitor::newBlock() {
     return std::make_shared<Block>(currentFunction);
 }
 
-StatementToBlockVisitor::StatementToBlockVisitor(ast::ProgramPtr program) : program(program) {
+StatementToBlockVisitor::StatementToBlockVisitor(jited::ast::ProgramPtr program) : program(program) {
     structTable = std::map<std::string, StructInfoTable>();
     globals = std::map<std::string, std::string>();
-    functions = std::map<std::string, ast::FunctionPtr>();
+    functions = std::map<std::string, jited::ast::FunctionPtr>();
     syncExpVisitor();
 
-    for (ast::TypeDeclarationPtr struc : program->types) {
+    for (jited::ast::TypeDeclarationPtr struc : program->types) {
         processTypedec(struc);
     }
-    for (ast::DeclarationPtr dec : program->decls) {
+    for (jited::ast::DeclarationPtr dec : program->decls) {
         processGlobals(dec);
     }
-    for (ast::FunctionPtr fun : program->funcs) {
+    for (jited::ast::FunctionPtr fun : program->funcs) {
         globals.insert({fun->name, fun->retType->toString()});
         functions.insert({fun->name, fun});
     }
 };
     
-Any StatementToBlockVisitor::visit(ast::AssignmentStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::AssignmentStatement* statement) {
     ValuePtr lhs = statement->target->accept(&expVisitor);
     ValuePtr rhs = statement->source->accept(&expVisitor);
     rhs = expVisitor.zext(rhs);
@@ -418,7 +418,7 @@ Any StatementToBlockVisitor::visit(ast::AssignmentStatement* statement) {
             )
         );
     } else {
-        ast::LvalueIdPtr lhsV = std::dynamic_pointer_cast<ast::LvalueId>(statement->target);
+        jited::ast::LvalueIdPtr lhsV = std::dynamic_pointer_cast<jited::ast::LvalueId>(statement->target);
         if (!locals.count(lhsV->id)) {
             GlobalPtr reg = Global::get(lhsV->id, globals.at(lhsV->id));
             current->addInstruction(
@@ -433,14 +433,14 @@ Any StatementToBlockVisitor::visit(ast::AssignmentStatement* statement) {
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::BlockStatement* statement) {
-    for (ast::StatementPtr bodyStmt : statement->statements) {
+Any StatementToBlockVisitor::visit(jited::ast::BlockStatement* statement) {
+    for (jited::ast::StatementPtr bodyStmt : statement->statements) {
         setCurrent(bodyStmt->accept(this));
     }
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::ConditionalStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::ConditionalStatement* statement) {
     ValuePtr guard = statement->guard->accept(&expVisitor);
     guard = expVisitor.trunc(guard);
     BlockPtr thenEntry = newBlock(), elseEntry = newBlock(), join = newBlock();
@@ -485,13 +485,13 @@ Any StatementToBlockVisitor::visit(ast::ConditionalStatement* statement) {
     }
 }
 
-Any StatementToBlockVisitor::visit(ast::Declaration* declaration) {
+Any StatementToBlockVisitor::visit(jited::ast::Declaration* declaration) {
     RegisterPtr alloc = Register::get(declaration->type->toString());
     current->writeVariable(declaration->name, alloc);
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::DeleteStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::DeleteStatement* statement) {
     ValuePtr reg = statement->expression->accept(&expVisitor);
     RegisterPtr cast = Register::get("i8*");
     InstructionPtr castInstr = std::make_shared<CastInstruction>(
@@ -506,7 +506,7 @@ Any StatementToBlockVisitor::visit(ast::DeleteStatement* statement) {
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::Function* function) {
+Any StatementToBlockVisitor::visit(jited::ast::Function* function) {
     currentFunction = function;
 
     locals.clear();
@@ -517,7 +517,7 @@ Any StatementToBlockVisitor::visit(ast::Function* function) {
     retBlock->assignLabel();
     processFunctionHeader(function);
 
-    for (ast::DeclarationPtr param : function->params) {
+    for (jited::ast::DeclarationPtr param : function->params) {
         RegisterPtr local = Register::get(param->type->toString());
         local->label = param->name;
         // locals.insert({param->name, param->type->toString()});
@@ -525,7 +525,7 @@ Any StatementToBlockVisitor::visit(ast::Function* function) {
         this->current->writeVariable(param->name, local);
     }
 
-    for (ast::DeclarationPtr loc : function->locals) {
+    for (jited::ast::DeclarationPtr loc : function->locals) {
         // locals.insert({loc->name, loc->type->toString()});
         locals[loc->name] = loc->type->toString();
         loc->accept(this);
@@ -561,12 +561,12 @@ Any StatementToBlockVisitor::visit(ast::Function* function) {
     return oss.str();
 }
 
-Any StatementToBlockVisitor::visit(ast::InvocationStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::InvocationStatement* statement) {
     statement->expression->accept(&expVisitor);
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::PrintLnStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::PrintLnStatement* statement) {
     ValuePtr reg = statement->expression->accept(&expVisitor);
     Values args;
     args.push_back(reg);
@@ -575,7 +575,7 @@ Any StatementToBlockVisitor::visit(ast::PrintLnStatement* statement) {
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::PrintStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::PrintStatement* statement) {
     ValuePtr reg = statement->expression->accept(&expVisitor);
     Values args;
     args.push_back(reg);
@@ -584,18 +584,18 @@ Any StatementToBlockVisitor::visit(ast::PrintStatement* statement) {
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::Program* program) {
+Any StatementToBlockVisitor::visit(jited::ast::Program* program) {
     throw std::runtime_error("error: program compilation not supported");
 }
 
-Any StatementToBlockVisitor::visit(ast::ReturnEmptyStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::ReturnEmptyStatement* statement) {
     InstructionPtr inst = std::make_shared<BranchInstruction>(retBlock);
     current->addInstruction(inst);
     current->connectTo(retBlock);
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::ReturnStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::ReturnStatement* statement) {
     ValuePtr retReg = statement->expression->accept(&expVisitor);
     if (current != retBlock) {
         current->writeVariable("_retval_", retReg); // ?
@@ -606,7 +606,7 @@ Any StatementToBlockVisitor::visit(ast::ReturnStatement* statement) {
     return current;
 }
 
-Any StatementToBlockVisitor::visit(ast::WhileStatement* statement) {
+Any StatementToBlockVisitor::visit(jited::ast::WhileStatement* statement) {
     ValuePtr guard = statement->guard->accept(&expVisitor);
     guard = expVisitor.trunc(guard);
 
@@ -656,7 +656,7 @@ Any StatementToBlockVisitor::visit(ast::WhileStatement* statement) {
 
 //     if (parser.getNumberOfSyntaxErrors() == 0) {
 //         MiniToAstProgramVisitor programVisitor;
-//         ast::ProgramPtr p = programVisitor.visit(tree);
+//         jited::ast::ProgramPtr p = programVisitor.visit(tree);
 //         StatementToBlockVisitor c(p);
 //         c.run();
 //     } else {

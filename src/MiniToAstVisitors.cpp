@@ -12,33 +12,33 @@
 
 #include "lib/proxy.h"
 
-using mini::proxy;
+using jited::proxy;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 antlrcpp::Any MiniToAstTypeVisitor::defaultResult() {
-    return proxy<ast::VoidType, ast::Type>(
-        std::make_shared<ast::VoidType>()
+    return proxy<jited::ast::VoidType, jited::ast::Type>(
+        std::make_shared<jited::ast::VoidType>()
     );
 }
 
 MiniToAstTypeVisitor::MiniToAstTypeVisitor() {};
 
 antlrcpp::Any MiniToAstTypeVisitor::visitIntType(MiniParser::IntTypeContext* ctx) {
-    return proxy<ast::IntType, ast::Type>(
-        std::make_shared<ast::IntType>()
+    return proxy<jited::ast::IntType, jited::ast::Type>(
+        std::make_shared<jited::ast::IntType>()
     );
 }
 
 antlrcpp::Any MiniToAstTypeVisitor::visitBoolType(MiniParser::BoolTypeContext* ctx) {
-    return proxy<ast::BoolType, ast::Type>(
-        std::make_shared<ast::BoolType>()
+    return proxy<jited::ast::BoolType, jited::ast::Type>(
+        std::make_shared<jited::ast::BoolType>()
     );
 }
 
 antlrcpp::Any MiniToAstTypeVisitor::visitStructType(MiniParser::StructTypeContext* ctx) {
-    return proxy<ast::StructType, ast::Type>(
-        std::make_shared<ast::StructType>(ctx->getStart()->getLine(), ctx->ID()->getText())
+    return proxy<jited::ast::StructType, jited::ast::Type>(
+        std::make_shared<jited::ast::StructType>(ctx->getStart()->getLine(), ctx->ID()->getText())
     );
 }
 
@@ -47,24 +47,24 @@ antlrcpp::Any MiniToAstTypeVisitor::visitReturnTypeReal(MiniParser::ReturnTypeRe
 }
 
 antlrcpp::Any MiniToAstTypeVisitor::visitReturnTypeVoid(MiniParser::ReturnTypeVoidContext* ctx) {
-    return proxy<ast::VoidType, ast::Type>(
-        std::make_shared<ast::VoidType>()
+    return proxy<jited::ast::VoidType, jited::ast::Type>(
+        std::make_shared<jited::ast::VoidType>()
     );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 antlrcpp::Any MiniToAstExpressionVisitor::defaultResult() {
-    return proxy<ast::NullExpression, ast::Expression>(
-        std::make_shared<ast::NullExpression>(-1)
+    return proxy<jited::ast::NullExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::NullExpression>(-1)
     );
 }
 
 MiniToAstExpressionVisitor::MiniToAstExpressionVisitor() {};
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitIntegerExpr(MiniParser::IntegerExprContext* ctx) {
-    return proxy<ast::IntegerExpression, ast::Expression>(
-        std::make_shared<ast::IntegerExpression>(
+    return proxy<jited::ast::IntegerExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::IntegerExpression>(
             ctx->getStart()->getLine(),
             std::stoi(ctx->INTEGER()->getText())
         )
@@ -72,16 +72,16 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitIntegerExpr(MiniParser::IntegerEx
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitTrueExpr(MiniParser::TrueExprContext* ctx) {
-    return proxy<ast::TrueExpression, ast::Expression>(
-        std::make_shared<ast::TrueExpression>(
+    return proxy<jited::ast::TrueExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::TrueExpression>(
             ctx->getStart()->getLine()
         )
     );
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitIdentifierExpr(MiniParser::IdentifierExprContext* ctx) {
-    return proxy<ast::IdentifierExpression, ast::Expression>(
-        std::make_shared<ast::IdentifierExpression>(
+    return proxy<jited::ast::IdentifierExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::IdentifierExpression>(
             ctx->getStart()->getLine(),
             ctx->ID()->getText()
         )
@@ -89,8 +89,8 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitIdentifierExpr(MiniParser::Identi
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitBinaryExpr(MiniParser::BinaryExprContext* ctx) {
-    return proxy<ast::BinaryExpression, ast::Expression>(
-        std::make_shared<ast::BinaryExpression>(
+    return proxy<jited::ast::BinaryExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::BinaryExpression>(
             ctx->op->getLine(),
             ctx->op->getText(),
             ctx->lft->accept(this),
@@ -100,8 +100,8 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitBinaryExpr(MiniParser::BinaryExpr
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitNewExpr(MiniParser::NewExprContext* ctx) {
-    return proxy<ast::NewExpression, ast::Expression>(
-        std::make_shared<ast::NewExpression>(
+    return proxy<jited::ast::NewExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::NewExpression>(
             ctx->getStart()->getLine(),
             ctx->ID()->getText()
         )
@@ -109,8 +109,8 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitNewExpr(MiniParser::NewExprContex
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitDotExpr(MiniParser::DotExprContext* ctx) {
-    return proxy<ast::DotExpression, ast::Expression>(
-        std::make_shared<ast::DotExpression>(
+    return proxy<jited::ast::DotExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::DotExpression>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(this),
             ctx->ID()->getText()
@@ -119,16 +119,16 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitDotExpr(MiniParser::DotExprContex
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitFalseExpr(MiniParser::FalseExprContext* ctx) {
-    return proxy<ast::FalseExpression, ast::Expression>(
-        std::make_shared<ast::FalseExpression>(
+    return proxy<jited::ast::FalseExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::FalseExpression>(
             ctx->getStart()->getLine()
         )
     );
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitUnaryExpr(MiniParser::UnaryExprContext* ctx) {
-    return proxy<ast::UnaryExpression, ast::Expression>(
-        std::make_shared<ast::UnaryExpression>(
+    return proxy<jited::ast::UnaryExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::UnaryExpression>(
             ctx->op->getLine(),
             ctx->op->getText(),
             ctx->expression()->accept(this)
@@ -136,8 +136,8 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitUnaryExpr(MiniParser::UnaryExprCo
     );
 }
 
-std::vector<ast::ExpressionPtr> MiniToAstExpressionVisitor::gatherArguments(MiniParser::ArgumentsContext* ctx) {
-    std::vector<ast::ExpressionPtr> args;
+std::vector<jited::ast::ExpressionPtr> MiniToAstExpressionVisitor::gatherArguments(MiniParser::ArgumentsContext* ctx) {
+    std::vector<jited::ast::ExpressionPtr> args;
     for (auto ectx : ctx->expression()) {
         args.push_back(ectx->accept(this));
     }
@@ -145,8 +145,8 @@ std::vector<ast::ExpressionPtr> MiniToAstExpressionVisitor::gatherArguments(Mini
 }
 
 antlrcpp::Any MiniToAstExpressionVisitor::visitInvocationExpr(MiniParser::InvocationExprContext* ctx) {
-    return proxy<ast::InvocationExpression, ast::Expression>(
-        std::make_shared<ast::InvocationExpression>(
+    return proxy<jited::ast::InvocationExpression, jited::ast::Expression>(
+        std::make_shared<jited::ast::InvocationExpression>(
             ctx->getStart()->getLine(),
             ctx->ID()->getText(),
             gatherArguments(ctx->arguments())
@@ -160,19 +160,19 @@ antlrcpp::Any MiniToAstExpressionVisitor::visitNestedExpr(MiniParser::NestedExpr
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-ast::ExpressionPtr MiniToAstStatementVisitor::visitLvalueNested(MiniParser::LvalueContext* ctx) {
+jited::ast::ExpressionPtr MiniToAstStatementVisitor::visitLvalueNested(MiniParser::LvalueContext* ctx) {
     MiniParser::LvalueIdContext* idctx = dynamic_cast<MiniParser::LvalueIdContext*>(ctx);
     if (idctx != nullptr) {
-        return proxy<ast::IdentifierExpression, ast::Expression>(
-            std::make_shared<ast::IdentifierExpression>(
+        return proxy<jited::ast::IdentifierExpression, jited::ast::Expression>(
+            std::make_shared<jited::ast::IdentifierExpression>(
                 idctx->getStart()->getLine(),
                 idctx->ID()->getText()
             )
         );
     } else {
         MiniParser::LvalueDotContext* dotctx = static_cast<MiniParser::LvalueDotContext*>(ctx);
-        return proxy<ast::DotExpression, ast::Expression>(
-            std::make_shared<ast::DotExpression>(
+        return proxy<jited::ast::DotExpression, jited::ast::Expression>(
+            std::make_shared<jited::ast::DotExpression>(
                 dotctx->getStart()->getLine(),
                 visitLvalueNested(dotctx->lvalue()),
                 dotctx->ID()->getText()
@@ -181,19 +181,19 @@ ast::ExpressionPtr MiniToAstStatementVisitor::visitLvalueNested(MiniParser::Lval
     }
 }
 
-ast::LvaluePtr MiniToAstStatementVisitor::visitLvalue(MiniParser::LvalueContext* ctx) {
+jited::ast::LvaluePtr MiniToAstStatementVisitor::visitLvalue(MiniParser::LvalueContext* ctx) {
     MiniParser::LvalueIdContext* idctx = dynamic_cast<MiniParser::LvalueIdContext*>(ctx);
     if (idctx != nullptr) {
-        return proxy<ast::LvalueId, ast::Lvalue>(
-            std::make_shared<ast::LvalueId>(
+        return proxy<jited::ast::LvalueId, jited::ast::Lvalue>(
+            std::make_shared<jited::ast::LvalueId>(
                 idctx->getStart()->getLine(),
                 idctx->ID()->getText()
             )
         );
     } else {
         MiniParser::LvalueDotContext* dotctx = static_cast<MiniParser::LvalueDotContext*>(ctx);
-        return proxy<ast::LvalueDot, ast::Lvalue>(
-            std::make_shared<ast::LvalueDot>(
+        return proxy<jited::ast::LvalueDot, jited::ast::Lvalue>(
+            std::make_shared<jited::ast::LvalueDot>(
                 dotctx->getStart()->getLine(),
                 visitLvalueNested(dotctx->lvalue()),
                 dotctx->ID()->getText()
@@ -202,8 +202,8 @@ ast::LvaluePtr MiniToAstStatementVisitor::visitLvalue(MiniParser::LvalueContext*
     }
 }
 
-std::vector<ast::ExpressionPtr> MiniToAstStatementVisitor::gatherArguments(MiniParser::ArgumentsContext* ctx) {
-    std::vector<ast::ExpressionPtr> args;
+std::vector<jited::ast::ExpressionPtr> MiniToAstStatementVisitor::gatherArguments(MiniParser::ArgumentsContext* ctx) {
+    std::vector<jited::ast::ExpressionPtr> args;
     for (auto ectx : ctx->expression()) {
         args.push_back(ectx->accept(&expressionVisitor));
     }
@@ -211,7 +211,7 @@ std::vector<ast::ExpressionPtr> MiniToAstStatementVisitor::gatherArguments(MiniP
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::defaultResult() {
-    return proxy<ast::BlockStatement, ast::Statement>(ast::BlockStatement::emptyBlock());
+    return proxy<jited::ast::BlockStatement, jited::ast::Statement>(jited::ast::BlockStatement::emptyBlock());
 }
 
 MiniToAstStatementVisitor::MiniToAstStatementVisitor() {};
@@ -221,19 +221,19 @@ antlrcpp::Any MiniToAstStatementVisitor::visitNestedBlock(MiniParser::NestedBloc
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitAssignment(MiniParser::AssignmentContext* ctx) {
-    ast::ExpressionPtr exp;
+    jited::ast::ExpressionPtr exp;
     if (ctx->expression() != nullptr) {
         exp = ctx->expression()->accept(&expressionVisitor);
     } else {
-        exp = proxy<ast::ReadExpression, ast::Expression>(
-            std::make_shared<ast::ReadExpression>(
+        exp = proxy<jited::ast::ReadExpression, jited::ast::Expression>(
+            std::make_shared<jited::ast::ReadExpression>(
                 ctx->getStart()->getLine()
             )
         );
     }
 
-    return proxy<ast::AssignmentStatement, ast::Statement>(
-        std::make_shared<ast::AssignmentStatement>(
+    return proxy<jited::ast::AssignmentStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::AssignmentStatement>(
             ctx->getStart()->getLine(),
             visitLvalue(ctx->lvalue()),
             exp
@@ -242,8 +242,8 @@ antlrcpp::Any MiniToAstStatementVisitor::visitAssignment(MiniParser::AssignmentC
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitPrint(MiniParser::PrintContext* ctx) {
-    return proxy<ast::PrintStatement, ast::Statement>(
-        std::make_shared<ast::PrintStatement>(
+    return proxy<jited::ast::PrintStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::PrintStatement>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(&expressionVisitor)
         )
@@ -251,8 +251,8 @@ antlrcpp::Any MiniToAstStatementVisitor::visitPrint(MiniParser::PrintContext* ct
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitPrintLn(MiniParser::PrintLnContext* ctx) {
-    return proxy<ast::PrintLnStatement, ast::Statement>(
-        std::make_shared<ast::PrintLnStatement>(
+    return proxy<jited::ast::PrintLnStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::PrintLnStatement>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(&expressionVisitor)
         )
@@ -260,19 +260,19 @@ antlrcpp::Any MiniToAstStatementVisitor::visitPrintLn(MiniParser::PrintLnContext
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitConditional(MiniParser::ConditionalContext* ctx) {
-    return proxy<ast::ConditionalStatement, ast::Statement>(
-        std::make_shared<ast::ConditionalStatement>(
+    return proxy<jited::ast::ConditionalStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::ConditionalStatement>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(&expressionVisitor),
             ctx->thenBlock->accept(this),
-            ((ctx->elseBlock != nullptr) ? ctx->elseBlock->accept(this).as<ast::StatementPtr>() : ast::BlockStatement::emptyBlock())
+            ((ctx->elseBlock != nullptr) ? ctx->elseBlock->accept(this).as<jited::ast::StatementPtr>() : jited::ast::BlockStatement::emptyBlock())
         )
     );
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitWhile(MiniParser::WhileContext* ctx) {
-    return proxy<ast::WhileStatement, ast::Statement>(
-        std::make_shared<ast::WhileStatement>(
+    return proxy<jited::ast::WhileStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::WhileStatement>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(&expressionVisitor),
             ctx->block()->accept(this)
@@ -281,8 +281,8 @@ antlrcpp::Any MiniToAstStatementVisitor::visitWhile(MiniParser::WhileContext* ct
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitDelete(MiniParser::DeleteContext* ctx) {
-    return proxy<ast::DeleteStatement, ast::Statement>(
-        std::make_shared<ast::DeleteStatement>(
+    return proxy<jited::ast::DeleteStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::DeleteStatement>(
             ctx->getStart()->getLine(),
             ctx->expression()->accept(&expressionVisitor)
         )
@@ -291,15 +291,15 @@ antlrcpp::Any MiniToAstStatementVisitor::visitDelete(MiniParser::DeleteContext* 
 
 antlrcpp::Any MiniToAstStatementVisitor::visitReturn(MiniParser::ReturnContext* ctx) {
     if (ctx->expression() != nullptr) {
-        return proxy<ast::ReturnStatement, ast::Statement>(
-            std::make_shared<ast::ReturnStatement>(
+        return proxy<jited::ast::ReturnStatement, jited::ast::Statement>(
+            std::make_shared<jited::ast::ReturnStatement>(
                 ctx->getStart()->getLine(),
                 ctx->expression()->accept(&expressionVisitor)
             )
         );
     } else {
-        return proxy<ast::ReturnEmptyStatement, ast::Statement>(
-            std::make_shared<ast::ReturnEmptyStatement>(
+        return proxy<jited::ast::ReturnEmptyStatement, jited::ast::Statement>(
+            std::make_shared<jited::ast::ReturnEmptyStatement>(
                 ctx->getStart()->getLine()
             )
         );
@@ -307,10 +307,10 @@ antlrcpp::Any MiniToAstStatementVisitor::visitReturn(MiniParser::ReturnContext* 
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitInvocation(MiniParser::InvocationContext* ctx) {
-    return proxy<ast::InvocationStatement, ast::Statement>(
-        std::make_shared<ast::InvocationStatement>(
+    return proxy<jited::ast::InvocationStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::InvocationStatement>(
             ctx->getStart()->getLine(),
-            std::make_shared<ast::InvocationExpression>(
+            std::make_shared<jited::ast::InvocationExpression>(
                 ctx->getStart()->getLine(),
                 ctx->ID()->getText(),
                 gatherArguments(ctx->arguments())
@@ -320,12 +320,12 @@ antlrcpp::Any MiniToAstStatementVisitor::visitInvocation(MiniParser::InvocationC
 }
 
 antlrcpp::Any MiniToAstStatementVisitor::visitStatementList(MiniParser::StatementListContext* ctx) {
-    std::vector<ast::StatementPtr> statements;
+    std::vector<jited::ast::StatementPtr> statements;
     for (auto sctx : ctx->statement()) {
         statements.push_back(sctx->accept(this));
     }
-    return proxy<ast::BlockStatement, ast::Statement>(
-        std::make_shared<ast::BlockStatement>(
+    return proxy<jited::ast::BlockStatement, jited::ast::Statement>(
+        std::make_shared<jited::ast::BlockStatement>(
             ctx->getStart()->getLine(),
             statements
         )
@@ -338,12 +338,12 @@ antlrcpp::Any MiniToAstStatementVisitor::visitBlock(MiniParser::BlockContext* ct
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void MiniToAstDeclarationsVisitor::addDeclarationsTo(MiniParser::DeclarationContext* ctx, std::vector<ast::DeclarationPtr>& decls) {
-    ast::TypePtr type = ctx->type()->accept(&typeVisitor);
+void MiniToAstDeclarationsVisitor::addDeclarationsTo(MiniParser::DeclarationContext* ctx, std::vector<jited::ast::DeclarationPtr>& decls) {
+    jited::ast::TypePtr type = ctx->type()->accept(&typeVisitor);
 
     for (antlr4::tree::TerminalNode* node : ctx->ID()) {;
         decls.push_back(
-            std::make_shared<ast::Declaration>(
+            std::make_shared<jited::ast::Declaration>(
                 node->getSymbol()->getLine(),
                 type,
                 node->getText()
@@ -353,11 +353,11 @@ void MiniToAstDeclarationsVisitor::addDeclarationsTo(MiniParser::DeclarationCont
 }
 
 antlrcpp::Any MiniToAstDeclarationsVisitor::defaultResult() {
-    return std::vector<ast::Declaration>();
+    return std::vector<jited::ast::Declaration>();
 }
 
 antlrcpp::Any MiniToAstDeclarationsVisitor::visitDeclarations(MiniParser::DeclarationsContext* ctx) {
-    std::vector<ast::DeclarationPtr> decls;
+    std::vector<jited::ast::DeclarationPtr> decls;
     for (auto dctx : ctx->declaration()) {
         addDeclarationsTo(dctx, decls);
     }
@@ -366,11 +366,11 @@ antlrcpp::Any MiniToAstDeclarationsVisitor::visitDeclarations(MiniParser::Declar
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::vector<ast::DeclarationPtr> MiniToAstFunctionVisitor::gatherParameters(MiniParser::ParametersContext* ctx) {
-    std::vector<ast::DeclarationPtr> params;
+std::vector<jited::ast::DeclarationPtr> MiniToAstFunctionVisitor::gatherParameters(MiniParser::ParametersContext* ctx) {
+    std::vector<jited::ast::DeclarationPtr> params;
     for (auto dctx : ctx->decl()) {
         params.push_back(
-            std::make_shared<ast::Declaration>(
+            std::make_shared<jited::ast::Declaration>(
                 dctx->getStart()->getLine(),
                 dctx->type()->accept(&typeVisitor),
                 dctx->ID()->getText()
@@ -381,20 +381,20 @@ std::vector<ast::DeclarationPtr> MiniToAstFunctionVisitor::gatherParameters(Mini
 }
 
 antlrcpp::Any MiniToAstFunctionVisitor::defaultResult() {
-    return std::make_shared<ast::Function>(
+    return std::make_shared<jited::ast::Function>(
         -1,
         "invalid",
-        std::vector<ast::DeclarationPtr>(),
-        std::make_shared<ast::VoidType>(),
-        std::vector<ast::DeclarationPtr>(),
-        ast::BlockStatement::emptyBlock()
+        std::vector<jited::ast::DeclarationPtr>(),
+        std::make_shared<jited::ast::VoidType>(),
+        std::vector<jited::ast::DeclarationPtr>(),
+        jited::ast::BlockStatement::emptyBlock()
     );
 }
 
 MiniToAstFunctionVisitor::MiniToAstFunctionVisitor() {};
 
 antlrcpp::Any MiniToAstFunctionVisitor::visitFunction(MiniParser::FunctionContext* ctx) {
-    return std::make_shared<ast::Function>(
+    return std::make_shared<jited::ast::Function>(
         ctx->getStart()->getLine(),
         ctx->ID()->getText(),
         gatherParameters(ctx->parameters()),
@@ -406,12 +406,12 @@ antlrcpp::Any MiniToAstFunctionVisitor::visitFunction(MiniParser::FunctionContex
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::vector<ast::DeclarationPtr> MiniToAstTypeDeclarationVisitor::gatherFieldDeclarations(MiniParser::NestedDeclContext* ctx) {
-    std::vector<ast::DeclarationPtr> fields;
+std::vector<jited::ast::DeclarationPtr> MiniToAstTypeDeclarationVisitor::gatherFieldDeclarations(MiniParser::NestedDeclContext* ctx) {
+    std::vector<jited::ast::DeclarationPtr> fields;
 
     for (auto dctx : ctx->decl()) {
         fields.push_back(
-            std::make_shared<ast::Declaration>(
+            std::make_shared<jited::ast::Declaration>(
                 dctx->getStart()->getLine(),
                 dctx->type()->accept(&typeVisitor),
                 dctx->ID()->getText()
@@ -422,13 +422,13 @@ std::vector<ast::DeclarationPtr> MiniToAstTypeDeclarationVisitor::gatherFieldDec
 }
 
 antlrcpp::Any MiniToAstTypeDeclarationVisitor::defaultResult() {
-    return ast::TypeDeclaration(-1, "invalid", {});
+    return jited::ast::TypeDeclaration(-1, "invalid", {});
 }
 
 MiniToAstTypeDeclarationVisitor::MiniToAstTypeDeclarationVisitor() {};
 
 antlrcpp::Any MiniToAstTypeDeclarationVisitor::visitTypeDeclaration(MiniParser::TypeDeclarationContext* ctx) {
-    return std::make_shared<ast::TypeDeclaration>(
+    return std::make_shared<jited::ast::TypeDeclaration>(
         ctx->getStart()->getLine(),
         ctx->ID()->getText(),
         gatherFieldDeclarations(ctx->nestedDecl())
@@ -437,8 +437,8 @@ antlrcpp::Any MiniToAstTypeDeclarationVisitor::visitTypeDeclaration(MiniParser::
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-std::vector<ast::TypeDeclarationPtr> MiniToAstProgramVisitor::gatherTypes(MiniParser::TypesContext* ctx) {
-    std::vector<ast::TypeDeclarationPtr> types;
+std::vector<jited::ast::TypeDeclarationPtr> MiniToAstProgramVisitor::gatherTypes(MiniParser::TypesContext* ctx) {
+    std::vector<jited::ast::TypeDeclarationPtr> types;
 
     for (auto tctx : ctx->typeDeclaration()) {
         types.push_back(tctx->accept(&typeDeclarationVisitor));
@@ -447,12 +447,12 @@ std::vector<ast::TypeDeclarationPtr> MiniToAstProgramVisitor::gatherTypes(MiniPa
     return types;
 }
 
-std::vector<ast::DeclarationPtr> MiniToAstProgramVisitor::gatherDeclarations(MiniParser::DeclarationsContext* ctx) {
+std::vector<jited::ast::DeclarationPtr> MiniToAstProgramVisitor::gatherDeclarations(MiniParser::DeclarationsContext* ctx) {
     return ctx->accept(&declarationsVisitor);
 }
 
-std::vector<ast::FunctionPtr> MiniToAstProgramVisitor::gatherFunctions(MiniParser::FunctionsContext* ctx) {
-    std::vector<ast::FunctionPtr> funcs;
+std::vector<jited::ast::FunctionPtr> MiniToAstProgramVisitor::gatherFunctions(MiniParser::FunctionsContext* ctx) {
+    std::vector<jited::ast::FunctionPtr> funcs;
     for (auto fctx : ctx->function()) {
         funcs.push_back(fctx->accept(&functionVisitor));
     }
@@ -460,10 +460,10 @@ std::vector<ast::FunctionPtr> MiniToAstProgramVisitor::gatherFunctions(MiniParse
 }
 
 antlrcpp::Any MiniToAstProgramVisitor::defaultResult() {
-    return std::make_shared<ast::Program>(
-        std::vector<ast::TypeDeclarationPtr>(),
-        std::vector<ast::DeclarationPtr>(),
-        std::vector<ast::FunctionPtr>()
+    return std::make_shared<jited::ast::Program>(
+        std::vector<jited::ast::TypeDeclarationPtr>(),
+        std::vector<jited::ast::DeclarationPtr>(),
+        std::vector<jited::ast::FunctionPtr>()
     );
 }
 
@@ -473,5 +473,5 @@ antlrcpp::Any MiniToAstProgramVisitor::visitProgram(MiniParser::ProgramContext* 
     auto types = gatherTypes(ctx->types());
     auto decls = gatherDeclarations(ctx->declarations());
     auto funcs = gatherFunctions(ctx->functions());
-    return std::make_shared<ast::Program>(types, decls, funcs);
+    return std::make_shared<jited::ast::Program>(types, decls, funcs);
 };

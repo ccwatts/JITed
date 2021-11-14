@@ -9,10 +9,10 @@
 #include "ast/program.h"
 
 #include <iostream>
-namespace mini {
+namespace jited {
 MiniFrontend::MiniFrontend() {};
 
-ast::ProgramPtr MiniFrontend::parseFile(char* fname) {
+jited::ast::ProgramPtr MiniFrontend::parseFile(char* fname) {
     antlr4::ANTLRFileStream input(fname);
     MiniLexer lexer(&input);
     antlr4::CommonTokenStream tokens(&lexer);
@@ -21,7 +21,7 @@ ast::ProgramPtr MiniFrontend::parseFile(char* fname) {
 
     if (parser.getNumberOfSyntaxErrors() == 0) {
         MiniToAstProgramVisitor programVisitor;
-        ast::ProgramPtr p = programVisitor.visit(tree);
+        jited::ast::ProgramPtr p = programVisitor.visit(tree);
         return p;
     } else {
         std::cerr << "error: could not parse input file '" << fname << "'";

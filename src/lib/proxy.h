@@ -3,7 +3,7 @@
 #include <memory>
 #include "antlr4-runtime.h"
 
-namespace mini {
+namespace jited {
 
 // necessary to be able to upcast Any values containing derived classes
 template <typename U, typename V>

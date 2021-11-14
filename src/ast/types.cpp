@@ -5,6 +5,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 class ASTVisitor;
@@ -57,4 +58,5 @@ std::string StructType::toString() {
 Any StructType::accept(ASTVisitor* v) { return v->visit(this); };
 
 
+}
 }

@@ -36,7 +36,7 @@ public:
     antlrcpp::Any visitDotExpr(MiniParser::DotExprContext* ctx) override;
     antlrcpp::Any visitFalseExpr(MiniParser::FalseExprContext* ctx) override;
     antlrcpp::Any visitUnaryExpr(MiniParser::UnaryExprContext* ctx) override;
-    std::vector<ast::ExpressionPtr> gatherArguments(MiniParser::ArgumentsContext* ctx);
+    std::vector<jited::ast::ExpressionPtr> gatherArguments(MiniParser::ArgumentsContext* ctx);
     antlrcpp::Any visitInvocationExpr(MiniParser::InvocationExprContext* ctx) override;
     antlrcpp::Any visitNestedExpr(MiniParser::NestedExprContext* ctx) override;
 };
@@ -45,9 +45,9 @@ class MiniToAstStatementVisitor : public MiniBaseVisitor {
 private:
     MiniToAstExpressionVisitor expressionVisitor;
 
-    ast::ExpressionPtr visitLvalueNested(MiniParser::LvalueContext* ctx);
-    ast::LvaluePtr visitLvalue(MiniParser::LvalueContext* ctx);
-    std::vector<ast::ExpressionPtr> gatherArguments(MiniParser::ArgumentsContext* ctx);
+    jited::ast::ExpressionPtr visitLvalueNested(MiniParser::LvalueContext* ctx);
+    jited::ast::LvaluePtr visitLvalue(MiniParser::LvalueContext* ctx);
+    std::vector<jited::ast::ExpressionPtr> gatherArguments(MiniParser::ArgumentsContext* ctx);
 protected:
     antlrcpp::Any defaultResult() override;
 public:
@@ -68,7 +68,7 @@ public:
 class MiniToAstDeclarationsVisitor : public MiniBaseVisitor {
 private:
     MiniToAstTypeVisitor typeVisitor;
-    void addDeclarationsTo(MiniParser::DeclarationContext* ctx, std::vector<ast::DeclarationPtr>& decls);
+    void addDeclarationsTo(MiniParser::DeclarationContext* ctx, std::vector<jited::ast::DeclarationPtr>& decls);
 protected:
     antlrcpp::Any defaultResult() override;
 public:
@@ -80,7 +80,7 @@ private:
     MiniToAstTypeVisitor typeVisitor;
     MiniToAstDeclarationsVisitor declarationsVisitor;
     MiniToAstStatementVisitor statementVisitor;
-    std::vector<ast::DeclarationPtr> gatherParameters(MiniParser::ParametersContext* ctx);
+    std::vector<jited::ast::DeclarationPtr> gatherParameters(MiniParser::ParametersContext* ctx);
 protected:
     antlrcpp::Any defaultResult() override;
 public:
@@ -92,7 +92,7 @@ public:
 class MiniToAstTypeDeclarationVisitor : public MiniBaseVisitor {
 private:
     MiniToAstTypeVisitor typeVisitor;
-    std::vector<ast::DeclarationPtr> gatherFieldDeclarations(MiniParser::NestedDeclContext* ctx);
+    std::vector<jited::ast::DeclarationPtr> gatherFieldDeclarations(MiniParser::NestedDeclContext* ctx);
 protected:
     antlrcpp::Any defaultResult() override;
 public:
@@ -108,9 +108,9 @@ private:
     MiniToAstDeclarationsVisitor declarationsVisitor;
     MiniToAstFunctionVisitor functionVisitor;
 private:
-    std::vector<ast::TypeDeclarationPtr> gatherTypes(MiniParser::TypesContext* ctx);
-    std::vector<ast::DeclarationPtr> gatherDeclarations(MiniParser::DeclarationsContext* ctx);
-    std::vector<ast::FunctionPtr> gatherFunctions(MiniParser::FunctionsContext* ctx);
+    std::vector<jited::ast::TypeDeclarationPtr> gatherTypes(MiniParser::TypesContext* ctx);
+    std::vector<jited::ast::DeclarationPtr> gatherDeclarations(MiniParser::DeclarationsContext* ctx);
+    std::vector<jited::ast::FunctionPtr> gatherFunctions(MiniParser::FunctionsContext* ctx);
 protected:
     antlrcpp::Any defaultResult();
 public:
