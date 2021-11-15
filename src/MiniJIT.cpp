@@ -146,6 +146,142 @@ void* ModuleCompiler::getSym(std::string name) {
     }
 }
 
+
+
+
+
+
+
+DependencyFinder::DependencyFinder(const std::map<std::string, jited::ast::FunctionPtr>* funcs) : funcs(funcs) {};
+
+std::set<std::string> DependencyFinder::getDependencies(std::string fname) {
+    if (funcs->count(fname)) {
+        dependencies.clear();
+        funcs->at(fname)->accept(this);
+        return dependencies;
+    } else {
+        throw std::runtime_error("requirements asked for nonexistent function");
+    }
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::AssignmentStatement* statement) {
+    statement->source->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::BinaryExpression* expression) {
+    expression->left->accept(this);
+    expression->right->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::BlockStatement* statement) {
+    for (auto bodyStmt : statement->statements) {
+        bodyStmt->accept(this);
+    }
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::ConditionalStatement* statement) {
+    statement->guard->accept(this);
+    statement->thenBlock->accept(this);
+    statement->elseBlock->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::DeleteStatement* statement) {
+    statement->expression->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::DotExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::FalseExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::Function* function) {
+    dependencies.insert(function->name);
+    function->body->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::IdentifierExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::IntegerExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::InvocationExpression* expression) {
+    if (dependencies.count(expression->name) == 0) {
+        if (funcs->count(expression->name)) {
+            funcs->at(expression->name)->accept(this);
+        } else {
+            throw std::runtime_error("invoke requirements asked for nonexistent function");
+        }
+    }
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::InvocationStatement* statement) {
+    statement->expression->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::NewExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::NullExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::PrintLnStatement* statement) {
+    statement->expression->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::PrintStatement* statement) {
+    statement->expression->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::ReadExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::ReturnEmptyStatement* statement) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::ReturnStatement* statement) {
+    statement->expression->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::TrueExpression* expression) {return nullptr;}
+
+antlrcpp::Any DependencyFinder::visit(ast::UnaryExpression* expression) {
+    expression->operand->accept(this);
+    return nullptr;
+}
+
+antlrcpp::Any DependencyFinder::visit(ast::WhileStatement* statement) {
+    statement->guard->accept(this);
+    statement->body->accept(this);
+    return nullptr;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 JIT::JIT(jited::ast::ProgramPtr program, std::shared_ptr<jited::ast::ASTVisitor> compiler) :
     jited::MiniInterpreter(program),
     mc(std::move(jited::ModuleCompiler::create())),
@@ -156,6 +292,7 @@ JIT::JIT(jited::ast::ProgramPtr program, std::shared_ptr<jited::ast::ASTVisitor>
     for (auto pair : funcs) {
         callCounts[pair.first] = 0;
     }
+    df = std::make_unique<DependencyFinder>(&funcs);
 };
 
 JIT::~JIT() {
@@ -378,17 +515,19 @@ std::string JIT::entryFunction(std::string name) {
 }
 
 void JIT::compileFunction(std::string fname) {
-    if (funcs.count(fname)) {
-        if (!mc->getSym(fname)) {
-            jited::ast::FunctionPtr f = funcs.at(fname);
-            std::string moduleStr = moduleString(fname);
-            // #ifdef DEBUGJIT
-            // std::cout << moduleStr << std::endl;
-            // #endif
-            mc->addString(moduleStr);
+    for (auto required : df->getDependencies(fname)) {
+        if (funcs.count(required)) {
+            if (!mc->getSym(required)) {
+                jited::ast::FunctionPtr f = funcs.at(required);
+                std::string moduleStr = moduleString(required);
+                #ifdef DEBUGJIT
+                std::cout << moduleStr << std::endl;
+                #endif
+                mc->addString(moduleStr);
+            }
+        } else {
+            throw std::runtime_error("compilation requested for nonexistent function " + fname + ", requirement " + required);
         }
-    } else {
-        throw std::runtime_error("compilation requested for nonexistent function");
     }
 }
 
