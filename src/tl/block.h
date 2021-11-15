@@ -49,10 +49,10 @@ public:
     std::vector<Block*> toNodes, fromNodes;
     std::vector<PhiPtr> incompletePhis, phis;
     std::string label, header, footer;
-    ast::Function* func;
+    jited::ast::Function* func;
 
     Block();
-    Block(ast::Function* func);
+    Block(jited::ast::Function* func);
     void insertInstruction(int idx, std::shared_ptr<Instruction> instruction);
     void addInstruction(std::shared_ptr<Instruction> instruction);
     void connectTo(Block* other);

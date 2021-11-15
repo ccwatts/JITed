@@ -16,7 +16,7 @@ namespace minic {
 int Block::idCounter = 0;
 
 Block::Block() : sealed(false) {};
-Block::Block(ast::Function* func) : sealed(false), func(func) {};
+Block::Block(jited::ast::Function* func) : sealed(false), func(func) {};
 
 void Block::insertInstruction(int idx, std::shared_ptr<Instruction> instruction) {
     instructions.insert(instructions.begin() + idx, instruction);

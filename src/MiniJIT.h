@@ -44,21 +44,53 @@ public:
     void* getSym(std::string name);
 };
 
-class JIT : public mini::MiniInterpreter {
+class DependencyFinder : public jited::ast::ASTVisitor {
+private:
+    const std::map<std::string, jited::ast::FunctionPtr>* funcs;
+    std::set<std::string> dependencies;
+public:
+    DependencyFinder(const std::map<std::string, jited::ast::FunctionPtr>* funcs);
+    std::set<std::string> getDependencies(std::string fname);
+    Any visit(ast::AssignmentStatement* statement);
+    Any visit(ast::BinaryExpression* expression);
+    Any visit(ast::BlockStatement* statement);
+    Any visit(ast::ConditionalStatement* statement);
+    Any visit(ast::DeleteStatement* statement);
+    Any visit(ast::DotExpression* expression);
+    Any visit(ast::FalseExpression* expression);
+    Any visit(ast::Function* function);
+    Any visit(ast::IdentifierExpression* expression);
+    Any visit(ast::IntegerExpression* expression);
+    Any visit(ast::InvocationExpression* expression);
+    Any visit(ast::InvocationStatement* statement);
+    Any visit(ast::NewExpression* expression);
+    Any visit(ast::NullExpression* expression);
+    Any visit(ast::PrintLnStatement* statement);
+    Any visit(ast::PrintStatement* statement);
+    Any visit(ast::ReadExpression* expression);
+    Any visit(ast::ReturnEmptyStatement* statement);
+    Any visit(ast::ReturnStatement* statement);
+    Any visit(ast::TrueExpression* expression);
+    Any visit(ast::UnaryExpression* expression);
+    Any visit(ast::WhileStatement* statement);
+};
+
+class JIT : public jited::MiniInterpreter {
 protected:
     std::unique_ptr<ModuleCompiler> mc;
-    std::shared_ptr<ast::ASTVisitor> compiler;
+    std::unique_ptr<DependencyFinder> df;
+    std::shared_ptr<jited::ast::ASTVisitor> compiler;
     std::string lastCalled;
     std::map<std::string, int> callCounts;
     std::function<bool(std::string, std::string, std::map<std::string, int>)> heatFunction;
 public:
-    JIT(ast::ProgramPtr program, std::shared_ptr<ast::ASTVisitor> compiler);
+    JIT(jited::ast::ProgramPtr program, std::shared_ptr<jited::ast::ASTVisitor> compiler);
     ~JIT();
     
     // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
-    antlrcpp::Any visit(ast::InvocationExpression* expression) override;
+    antlrcpp::Any visit(jited::ast::InvocationExpression* expression) override;
 
-    mini::PackedStruct* reverseLookup(uint8_t* buf, std::string structName);
+    jited::PackedStruct* reverseLookup(uint8_t* buf, std::string structName);
 
     // contains the LLVM for defining necessary structs
     std::string structsString();
@@ -84,27 +116,3 @@ public:
 };
 
 }
-// parse assembly string...?
-
-// int main(int argc, char** argv) {
-//     // if (argc < 3) return 1;
-//     InitializeAllTargetInfos();
-//     InitializeAllTargets();
-//     InitializeAllTargetMCs();
-//     InitializeAllAsmPrinters();
-
-//     if (argc == 1) {
-//         return 0;
-//     }
-
-//     mini::MiniFrontend fe;
-//     ast::ProgramPtr p = fe.parseFile(argv[1]);
-//     if (!p) {
-//         return 1;
-//     }
-//     std::shared_ptr<ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
-//     jited::JIT j(p, compiler);
-//     return j.run();
-// }
-
-

@@ -4,7 +4,7 @@
 #include <string>
 #include <typeinfo>
 
-namespace mini {
+namespace jited {
 
 template <typename T>
 const char* typeOf(std::shared_ptr<T> p) {

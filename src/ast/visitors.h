@@ -5,6 +5,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 class AssignmentStatement;
@@ -110,4 +111,5 @@ public:
     virtual Any visit(WhileStatement* statement);
 };
 
+}
 }

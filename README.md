@@ -13,7 +13,7 @@ Thesis by Caleb Watts for the graduate program at California Polytechnic State U
 
 To build, run the makefile in `jit/src` using GNU make. The make command by itself will make executables for the JIT, example compiler, and interpreter. These components can also be compiled individually using `make jit`, `make compiler`, and `make interpreter` respectively.
 
-The files `MainJIT.cpp`, `MainCompiler.cpp`, and `MainInterpreter.cpp` contain the main functions for each of the executable. For students, the file `MainJIT.cpp` should be altered to create their compiler built on top of `ast::ASTVisitor` and supply it to the JIT framework.
+The files `MainJIT.cpp`, `MainCompiler.cpp`, and `MainInterpreter.cpp` contain the main functions for each of the executable. For students, the file `MainJIT.cpp` should be altered to create their compiler built on top of `jited::ast::ASTVisitor` and supply it to the JIT framework.
 
 ## Running
 

@@ -10,6 +10,7 @@
 #include "antlr4-runtime.h"
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
     
 class ASTVisitor;
@@ -193,4 +194,5 @@ public:
 };
 typedef std::shared_ptr<WhileStatement> WhileStatementPtr;
 
+}
 }

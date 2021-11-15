@@ -9,6 +9,7 @@
 
 using antlrcpp::Any;
 
+namespace jited {
 namespace ast {
 
 class Expression {
@@ -213,4 +214,5 @@ public:
 };
 typedef std::shared_ptr<UnaryExpression> UnaryExpressionPtr;
 
+}
 }
