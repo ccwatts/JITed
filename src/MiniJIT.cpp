@@ -100,8 +100,8 @@ int ModuleCompiler::addFile(char* fname) {
     SMDiagnostic err;
     auto m = parseIRFile(fname, err, *tsc.getContext());
     if (!m) {
-        std::cout << "<" << fname << "> ";
-        std::cout << err.getMessage().str() << std::endl;
+        std::cerr << "<" << fname << "> ";
+        std::cerr << err.getMessage().str() << std::endl;
         return -1;
     }
 
@@ -119,7 +119,7 @@ int ModuleCompiler::addString(std::string input) {
     SMDiagnostic err;
     auto m = parseAssemblyString(input, err, *tsc.getContext());
     if (!m) {
-        std::cout << err.getMessage().str() << std::endl;
+        std::cerr << err.getMessage().str() << std::endl;
         return -1;
     }
     
@@ -158,12 +158,20 @@ JIT::JIT(jited::ast::ProgramPtr program, std::shared_ptr<jited::ast::ASTVisitor>
     }
 };
 
-JIT::~JIT() {};
+JIT::~JIT() {
+    for (auto pair : globals) {
+        if (pair.second->value.is<int*>()) {
+            delete pair.second->value.as<int*>();
+        } else if (pair.second->value.is<bool*>()) {
+            delete pair.second->value.as<bool*>();
+        }
+    }
+};
 
 // WE PROBABLY NEED A LOOKUP/EVALUATEDSYMBOL FOR STRUCTS
 antlrcpp::Any JIT::visit(jited::ast::InvocationExpression* expression) {
     // branch based on whether it's compiled already or not
-    if (mc->getSym(expression->name)) {
+    if (mc->getSym(expression->name + "ENTRY")) {
         // int8_t* args = new int8_t[expression->arguments.size()];
         #ifdef DEBUGJIT
         std::cout << "running jitted symbol...\n";
@@ -389,8 +397,11 @@ void JIT::makeGlobals() {
     for (auto pair : globals) {
         auto mangled = mc->mangler(pair.first);
         jited::TypedValuePtr tv = pair.second;
-        if (tv->value.is<jited::IntPtr>()) {
-            int* ip = tv->value.as<jited::IntPtr>().get();
+        if (tv->value.is<jited::IntPtr>() || tv->value.is<int>()) {
+            // int* ip = tv->value.as<jited::IntPtr>().get();
+            int* ip = new int;
+            *ip = 0;
+            tv->value = ip;
             Error e = jd.define(orc::absoluteSymbols({{
                 mangled,
                 JITEvaluatedSymbol(pointerToJITTargetAddress(ip), JITSymbolFlags::Exported)
@@ -399,8 +410,11 @@ void JIT::makeGlobals() {
                 errs() << e;
                 throw std::runtime_error("error in global definition");
             }
-        } else if (tv->value.is<jited::BoolPtr>()) {
-            bool* bp = tv->value.as<jited::BoolPtr>().get();
+        } else if (tv->value.is<jited::BoolPtr>() || tv->value.is<bool>()) {
+            // bool* bp = tv->value.as<jited::BoolPtr>().get();
+            bool* bp = new bool;
+            *bp = false;
+            tv->value = bp;
             Error e = jd.define(orc::absoluteSymbols({{
                 mangled,
                 JITEvaluatedSymbol(pointerToJITTargetAddress(bp), JITSymbolFlags::Exported)

@@ -52,6 +52,8 @@ void TypedValue::setValue(antlrcpp::Any val, PackedStruct* parentStruct, std::st
     if (val.is<int>()) { // int
         if (value.is<int32_t*>()) {
             *(value.as<int32_t*>()) = (int32_t) val.as<int>();
+        } else if (value.is<int*>()) {
+            *(value.as<int*>()) = val.as<int>();
         } else if (value.is<IntPtr>()) {
             *(value.as<IntPtr>()) = val.as<int>();
         } else {
@@ -63,6 +65,8 @@ void TypedValue::setValue(antlrcpp::Any val, PackedStruct* parentStruct, std::st
             *(value.as<int32_t*>()) = (int32_t) val.as<bool>();
         } else if (value.is<BoolPtr>()) {
             *(value.as<BoolPtr>()) = val.as<bool>();
+        } else if (value.is<bool*>()) {
+            *(value.as<bool*>()) = val.as<bool>();
         } else {
             value = val;
         }
@@ -91,6 +95,8 @@ int TypedValue::asInt() {
         return value.as<int>();
     } else if (value.is<int32_t*>()) {
         return (int) *(value.as<int32_t*>());
+    } else if (value.is<int*>()) {
+        return (int) *(value.as<int*>());
     } else if (value.is<IntPtr>()) {
         return (int) *(value.as<IntPtr>());
     } else {
@@ -103,6 +109,8 @@ bool TypedValue::asBool() {
         return value.as<bool>();
     } else if (value.is<int32_t*>()) {
         return (bool) *(value.as<int32_t*>());
+    } else if (value.is<bool*>()) {
+        return (bool) *(value.as<bool*>());
     } else if (value.is<BoolPtr>()) {
         return (bool) *(value.as<BoolPtr>());
     } else {
@@ -474,7 +482,7 @@ Any MiniInterpreter::visit(jited::ast::ConditionalStatement* statement) {
 Any MiniInterpreter::visit(jited::ast::Declaration* declaration) {
     std::string typeStr = declaration->type->accept(this);
     if (typeStr == jited::ast::IntType::name()) {
-        return std::make_shared<TypedValue>(typeStr, std::make_shared<int>(0), false);
+        return std::make_shared<TypedValue>(typeStr, 0, false);
     } else if (typeStr == jited::ast::BoolType::name()) {
         return std::make_shared<TypedValue>(typeStr, false, false);
     } else if (typeStr == jited::ast::VoidType::name()) {
@@ -631,38 +639,38 @@ Any MiniInterpreter::visit(jited::ast::Program* program) {
         return 1;
     }
 
-    globals.clear();
+    // globals.clear();
+    // funcs.clear();
+    // structs.clear();
+
     scopes.clear();
-    funcs.clear();
-    structs.clear();
-
     scopes.push_back(ValueMap()); // scope for main
-    for (jited::ast::DeclarationPtr d : program->decls) {
-        // get the globals
-        TypedValuePtr decRes = d->accept(this);
-        globals.insert({d->name, decRes});
-    }
-
-    for (jited::ast::TypeDeclarationPtr td : program->types) {
-        // structs.insert({td->name, td->accept(this)});
-        structs.insert({td->name, td});
-    }
-
-    // check to see if main actually returned something?
-    jited::ast::FunctionPtr mainFn = nullptr;
-    for (jited::ast::FunctionPtr f : program->funcs) {
-        if (f->name == "main") {
-            mainFn = f;
-        }
-        funcs.insert({f->name, f});
-    };
-    
-    // if (funcs.count("main") == 0) {
-    //     std::cerr << "error: no main function in program\n";
-    //     return -1;
+    // for (jited::ast::DeclarationPtr d : program->decls) {
+    //     // get the globals
+    //     TypedValuePtr decRes = d->accept(this);
+    //     globals.insert({d->name, decRes});
     // }
 
-    // jited::ast::FunctionPtr mainFn = funcs.at("main");
+    // for (jited::ast::TypeDeclarationPtr td : program->types) {
+    //     // structs.insert({td->name, td->accept(this)});
+    //     structs.insert({td->name, td});
+    // }
+
+    // // check to see if main actually returned something?
+    // jited::ast::FunctionPtr mainFn = nullptr;
+    // for (jited::ast::FunctionPtr f : program->funcs) {
+    //     if (f->name == "main") {
+    //         mainFn = f;
+    //     }
+    //     funcs.insert({f->name, f});
+    // };
+    
+    if (funcs.count("main") == 0) {
+        std::cerr << "error: no main function in program\n";
+        return -1;
+    }
+
+    jited::ast::FunctionPtr mainFn = funcs.at("main");
 
 
     Any result = mainFn->accept(this);

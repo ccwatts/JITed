@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
     std::shared_ptr<jited::ast::ASTVisitor> compiler = std::make_shared<minic::StatementToBlockVisitor>(p);
     jited::JIT::initialize();
     jited::JIT j(p, compiler);
-    // j.setHeatFunction(customHeat);
+    j.setHeatFunction(customHeat);
     j.run();
 
     return 0;
