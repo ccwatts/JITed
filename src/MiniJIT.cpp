@@ -367,7 +367,7 @@ antlrcpp::Any JIT::visit(jited::ast::InvocationExpression* expression) {
     } else {
         antlrcpp::Any rv = MiniInterpreter::visit(expression);
         
-        if (heatFunction(expression->name, lastCalled, callCounts)) {
+        if (compiler && heatFunction(expression->name, lastCalled, callCounts)) {
             compileFunction(expression->name);
         }
 
