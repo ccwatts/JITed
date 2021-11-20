@@ -1,4 +1,4 @@
-# EduJIT
+# JITed
 
 Thesis by Caleb Watts for the graduate program at California Polytechnic State University, San Luis Obispo.
 
