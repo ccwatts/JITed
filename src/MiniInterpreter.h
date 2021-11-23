@@ -143,7 +143,7 @@ public:
     MiniInterpreter(jited::ast::ProgramPtr program);
     ~MiniInterpreter();
 
-    antlrcpp::Any visit(jited::ast::AssignmentStatement* statement);
+    antlrcpp::Any visit(jited::ast::AssignmentStatement* statement) override;
 
     antlrcpp::Any visit(jited::ast::BinaryExpression* expression) override;
 
@@ -185,7 +185,7 @@ public:
 
     antlrcpp::Any visit(jited::ast::PrintStatement* statement) override;
 
-    antlrcpp::Any visit(jited::ast::Program* program);
+    antlrcpp::Any visit(jited::ast::Program* program) override;
 
     antlrcpp::Any visit(jited::ast::ReadExpression* expression) override;
 

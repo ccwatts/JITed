@@ -174,7 +174,6 @@ public:
     ExpressionPtr expression;
 
     ReturnStatement(int line, ExpressionPtr expression);
-    // ~ReturnStatement() {};
     
     Any accept(ASTVisitor* v);
     Any accept(StatementVisitor* v);
