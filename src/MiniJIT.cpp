@@ -363,6 +363,7 @@ antlrcpp::Any JIT::visit(jited::ast::InvocationExpression* expression) {
         delete[] args;
 
 
+        callCounts[expression->name] += 1;
         return retVal;
     } else {
         antlrcpp::Any rv = MiniInterpreter::visit(expression);
